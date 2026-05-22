@@ -15,6 +15,8 @@ import AdminDashboard from '@/components/AdminDashboard'
 import CustomerPortal from '@/components/CustomerPortal'
 import EmployeePortal from '@/components/EmployeePortal'
 import AmcPage from '@/components/AmcPage'
+import CheckoutPage from '@/components/CheckoutPage'
+import OrderSuccessPage from '@/components/OrderSuccessPage'
 
 export default function Home() {
   const { currentView } = useAppStore()
@@ -52,6 +54,8 @@ export default function Home() {
         {currentView === 'products' && <ProductsPage />}
         {currentView === 'product-detail' && <ProductDetailPage />}
         {currentView === 'cart' && <CartPage />}
+        {currentView === 'checkout' && <CheckoutPage />}
+        {currentView === 'order-success' && <OrderSuccessPage />}
         {currentView === 'about' && <AboutPage />}
         {currentView === 'amc' && <AmcPage />}
         {currentView === 'contact' && <ContactPage />}

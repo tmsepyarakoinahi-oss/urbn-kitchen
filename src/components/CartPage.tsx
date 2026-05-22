@@ -222,7 +222,7 @@ export default function CartPage() {
               </div>
 
               <Button
-                onClick={() => toast.success('Checkout functionality coming soon!')}
+                onClick={() => setView('checkout')}
                 className="w-full bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-bold h-12 text-base neon-glow"
               >
                 Proceed to Checkout

@@ -5,6 +5,8 @@ export type AppView =
   | 'products' 
   | 'product-detail' 
   | 'cart' 
+  | 'checkout' 
+  | 'order-success' 
   | 'about' 
   | 'contact'
   | 'amc'
@@ -59,6 +61,7 @@ interface AppState {
   showMobileMenu: boolean
   showQuickView: boolean
   quickViewProductId: string | null
+  lastOrder: any | null
   
   // Actions
   setView: (view: AppView) => void
@@ -110,6 +113,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   showMobileMenu: false,
   showQuickView: false,
   quickViewProductId: null,
+  lastOrder: null,
   
   // Actions
   setView: (view) => set({ currentView: view, showMobileMenu: false }),
@@ -159,4 +163,5 @@ export const useAppStore = create<AppState>((set, get) => ({
   toggleMobileMenu: () => set((s) => ({ showMobileMenu: !s.showMobileMenu })),
   setShowQuickView: (show, productId) => set({ showQuickView: show, quickViewProductId: productId || null }),
   setProductDetail: (productId) => set({ selectedProductId: productId, currentView: 'product-detail' }),
+  setLastOrder: (order) => set({ lastOrder: order }),
 }))
