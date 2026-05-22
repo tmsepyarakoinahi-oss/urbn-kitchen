@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer'
-
 // Email configuration - update these with your SMTP credentials
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com'
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587')
@@ -8,13 +6,14 @@ const SMTP_PASS = process.env.SMTP_PASS || ''
 const EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@urbankitchens.com'
 const BUSINESS_EMAIL = process.env.BUSINESS_EMAIL || 'info@urbankitchens.com'
 
-// Create reusable transporter
-function createTransporter() {
+// Lazy-load nodemailer only when needed to avoid memory overhead
+async function createTransporter() {
   if (!SMTP_USER || !SMTP_PASS) {
     return null // Email not configured
   }
 
-  return nodemailer.createTransport({
+  const nodemailer = await import('nodemailer')
+  return nodemailer.default.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
     secure: SMTP_PORT === 465,
@@ -38,7 +37,7 @@ interface AmcQuoteEmailData {
 }
 
 export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent: boolean; error?: string }> {
-  const transporter = createTransporter()
+  const transporter = await createTransporter()
 
   if (!transporter) {
     console.log('[Email] SMTP not configured. Quote saved to database only.')
@@ -64,7 +63,7 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
       <!-- Header -->
       <div style="background: linear-gradient(135deg, #0b0b0b 0%, #1a1a1a 100%); padding: 24px 32px; border-bottom: 2px solid #59ff00;">
         <h1 style="margin: 0; color: #59ff00; font-size: 22px; font-weight: 700;">
-          🔥 Urban Kitchens — New AMC Quote Request
+          Urban Kitchens — New AMC Quote Request
         </h1>
         <p style="margin: 8px 0 0; color: #9ca3af; font-size: 13px;">
           Received ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
@@ -122,7 +121,7 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
       <!-- Footer -->
       <div style="background: #0b0b0b; padding: 16px 32px; border-top: 1px solid #1a1a1a; text-align: center;">
         <p style="margin: 0; color: #6b7280; font-size: 12px;">
-          Urban Kitchens Manufacturing & Solutions • Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020
+          Urban Kitchens Manufacturing & Solutions — Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020
         </p>
         <p style="margin: 4px 0 0; color: #6b7280; font-size: 11px;">
           This is an automated quote request from the Urban Kitchens website.
@@ -136,7 +135,7 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
       from: `"Urban Kitchens Website" <${EMAIL_FROM}>`,
       to: BUSINESS_EMAIL,
       replyTo: data.email,
-      subject: `🔥 New AMC Quote Request — ${data.plan} Plan from ${data.name}`,
+      subject: `New AMC Quote Request — ${data.plan} Plan from ${data.name}`,
       html: htmlBody,
     })
 
@@ -151,7 +150,7 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
 
 // Send confirmation email to customer
 export async function sendAmcQuoteConfirmation(data: AmcQuoteEmailData): Promise<{ sent: boolean; error?: string }> {
-  const transporter = createTransporter()
+  const transporter = await createTransporter()
 
   if (!transporter) {
     return { sent: false, error: 'SMTP not configured' }
@@ -183,7 +182,7 @@ export async function sendAmcQuoteConfirmation(data: AmcQuoteEmailData): Promise
       </div>
       <div style="background: #0b0b0b; padding: 16px 32px; border-top: 1px solid #1a1a1a; text-align: center;">
         <p style="margin: 0; color: #6b7280; font-size: 12px;">
-          Urban Kitchens Manufacturing & Solutions • New Delhi, India
+          Urban Kitchens Manufacturing & Solutions — New Delhi, India
         </p>
       </div>
     </div>

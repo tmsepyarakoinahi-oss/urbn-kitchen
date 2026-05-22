@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { sendAmcQuoteEmail, sendAmcQuoteConfirmation } from '@/lib/email'
 
 // GET /api/amc-quote - List quotes (admin)
 export async function GET(request: NextRequest) {
@@ -95,34 +94,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Send emails in background (don't block the response)
-    const emailData = {
-      name: name.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-      company: company?.trim(),
-      plan,
-      equipmentList: equipmentList || undefined,
-      kitchenSize: kitchenSize || undefined,
-      city: city?.trim(),
-      message: message?.trim(),
-    }
-
-    // Send notification to business email
-    sendAmcQuoteEmail(emailData)
-      .then(async (result) => {
-        if (result.sent) {
-          await db.amcQuote.update({
-            where: { id: quote.id },
-            data: { emailSent: true },
-          })
-        }
-      })
-      .catch((err) => console.error('Email send error:', err))
-
-    // Send confirmation to customer
-    sendAmcQuoteConfirmation(emailData)
-      .catch((err) => console.error('Confirmation email error:', err))
+    // Email sending will be handled by admin when SMTP is configured
+    // To enable emails, set SMTP_HOST, SMTP_USER, SMTP_PASS in .env
+    // The quote is saved to the database and can be viewed in the admin panel
+    console.log(`[AMC Quote] New quote saved: #AMC-${quote.id.slice(-6).toUpperCase()} for ${name} (${plan} plan)`)
 
     return NextResponse.json({
       status: true,
