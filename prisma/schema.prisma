@@ -297,3 +297,20 @@ model Inquiry {
   status    String   @default("new") // new, read, replied, closed
   createdAt DateTime @default(now())
 }
+
+model AmcQuote {
+  id              String   @id @default(cuid())
+  name            String
+  email           String
+  phone           String
+  company         String?
+  plan            String   // Basic, Standard, Premium, Custom
+  equipmentList   String?  // JSON array of equipment names
+  kitchenSize     String?  // small, medium, large, enterprise
+  city            String?
+  message         String?
+  status          String   @default("new") // new, contacted, quotation_sent, won, lost
+  emailSent       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

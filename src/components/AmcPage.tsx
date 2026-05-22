@@ -25,9 +25,24 @@ import {
   Timer,
   Settings,
   Star,
+  Building2,
+  MapPin,
+  Mail,
+  Loader2,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import {
   Accordion,
   AccordionItem,
@@ -155,31 +170,37 @@ const coverageItems = [
     icon: <Flame className="w-7 h-7" />,
     title: 'Burners & Ranges',
     desc: 'Industrial burners, cooking ranges, tandoors, and griddles — all serviced and calibrated.',
+    equipmentName: 'Burners & Ranges',
   },
   {
     icon: <Snowflake className="w-7 h-7" />,
     title: 'Refrigeration Units',
     desc: 'Walk-in cold rooms, deep freezers, display chillers, and under-counter units maintained.',
+    equipmentName: 'Refrigeration',
   },
   {
     icon: <Droplets className="w-7 h-7" />,
     title: 'Dishwashing Equipment',
     desc: 'Commercial dishwashers, glass washers, and pot washers — cleaning and descaling.',
+    equipmentName: 'Dishwashing',
   },
   {
     icon: <Monitor className="w-7 h-7" />,
     title: 'Display Counters',
     desc: 'Hot & cold display counters, bakery showcases, and salad bars — temperature calibration.',
+    equipmentName: 'Display Counters',
   },
   {
     icon: <UtensilsCrossed className="w-7 h-7" />,
     title: 'Food Prep Machines',
     desc: 'Mixers, slicers, peelers, vegetable cutters, and processors — lubrication and repair.',
+    equipmentName: 'Food Preparation',
   },
   {
     icon: <Wind className="w-7 h-7" />,
     title: 'Ventilation Systems',
     desc: 'Exhaust hoods, chimneys, fans, and ventilation ducts — cleaning and airflow optimization.',
+    equipmentName: 'Ventilation Systems',
   },
 ]
 
@@ -253,14 +274,46 @@ const faqs = [
   },
 ]
 
+/* ─── Kitchen sizes ─── */
+const kitchenSizes = [
+  { value: 'small', label: 'Small (1-5 equipment)', icon: '🏪' },
+  { value: 'medium', label: 'Medium (6-15 equipment)', icon: '🏨' },
+  { value: 'large', label: 'Large (16-30 equipment)', icon: '🏢' },
+  { value: 'enterprise', label: 'Enterprise (30+ equipment)', icon: '🏭' },
+]
+
+/* ─── Equipment options ─── */
+const equipmentOptions = coverageItems.map(item => item.equipmentName)
+
 /* ─── Component ─── */
 export default function AmcPage() {
   const { setView } = useAppStore()
 
+  // Quote form dialog state
+  const [quoteDialogOpen, setQuoteDialogOpen] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [referenceNumber, setReferenceNumber] = useState('')
+
+  // Form fields
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    city: '',
+    kitchenSize: '',
+    message: '',
+  })
+  const [selectedEquipment, setSelectedEquipment] = useState<string[]>([])
+
+  // Open quote form with pre-selected plan
   const handleGetQuote = (planName: string) => {
-    toast.success(`Quote request for ${planName} plan received! We'll contact you shortly.`, {
-      description: 'Our team will reach out within 24 hours.',
-    })
+    setSelectedPlan(planName)
+    setSubmitted(false)
+    setReferenceNumber('')
+    setQuoteDialogOpen(true)
   }
 
   const handleContactSupport = () => {
@@ -268,6 +321,88 @@ export default function AmcPage() {
       description: 'Fill out the form for AMC consultation.',
     })
     setTimeout(() => setView('contact'), 500)
+  }
+
+  // Toggle equipment selection
+  const toggleEquipment = (name: string) => {
+    setSelectedEquipment(prev =>
+      prev.includes(name)
+        ? prev.filter(e => e !== name)
+        : [...prev, name]
+    )
+  }
+
+  // Update form field
+  const updateField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Submit quote form
+  const handleSubmit = async () => {
+    // Validate
+    if (!formData.name.trim()) {
+      toast.error('Please enter your name')
+      return
+    }
+    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+    if (!formData.phone.trim()) {
+      toast.error('Please enter your phone number')
+      return
+    }
+    if (!formData.city.trim()) {
+      toast.error('Please enter your city')
+      return
+    }
+    if (!formData.kitchenSize) {
+      toast.error('Please select your kitchen size')
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/amc-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          plan: selectedPlan,
+          equipmentList: selectedEquipment.length > 0 ? JSON.stringify(selectedEquipment) : null,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.status) {
+        setSubmitted(true)
+        setReferenceNumber(data.data?.referenceNumber || '')
+        toast.success('Quote request submitted!', {
+          description: 'Our team will contact you within 24 hours.',
+        })
+      } else {
+        toast.error(data.message || 'Failed to submit quote request')
+      }
+    } catch {
+      toast.error('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Reset form on dialog close
+  const handleDialogClose = (open: boolean) => {
+    setQuoteDialogOpen(open)
+    if (!open) {
+      // Reset after animation
+      setTimeout(() => {
+        setSubmitted(false)
+        setFormData({ name: '', email: '', phone: '', company: '', city: '', kitchenSize: '', message: '' })
+        setSelectedEquipment([])
+        setReferenceNumber('')
+      }, 300)
+    }
   }
 
   return (
@@ -317,13 +452,10 @@ export default function AmcPage() {
               className="flex flex-col sm:flex-row items-center justify-center gap-4"
             >
               <Button
-                onClick={() => {
-                  const el = document.getElementById('amc-plans')
-                  el?.scrollIntoView({ behavior: 'smooth' })
-                }}
+                onClick={() => handleGetQuote('Premium')}
                 className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold px-8 h-12 text-base neon-glow"
               >
-                View Plans
+                Get a Free Quote
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <Button
@@ -495,10 +627,10 @@ export default function AmcPage() {
             <p className="text-gray-500 text-sm">
               Need a custom plan?{' '}
               <button
-                onClick={handleContactSupport}
+                onClick={() => handleGetQuote('Custom')}
                 className="text-[#59ff00] hover:underline inline-flex items-center gap-1"
               >
-                Contact us <ArrowRight className="w-3 h-3" />
+                Get a custom quote <ArrowRight className="w-3 h-3" />
               </button>
               {' '}for tailored AMC solutions.
             </p>
@@ -700,10 +832,10 @@ export default function AmcPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
-              onClick={handleContactSupport}
+              onClick={() => handleGetQuote('Premium')}
               className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold px-8 h-12 text-base neon-glow"
             >
-              Contact Us Today
+              Get a Free Quote
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <a
@@ -716,6 +848,234 @@ export default function AmcPage() {
           </div>
         </motion.div>
       </section>
+
+      {/* ═══════════════════ QUOTE FORM DIALOG ═══════════════════ */}
+      <Dialog open={quoteDialogOpen} onOpenChange={handleDialogClose}>
+        <DialogContent className="bg-[#111] border-[#2a2a2a] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          {!submitted ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-[family-name:var(--font-poppins)] text-xl flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-[#59ff00]" />
+                  Get AMC Quote — <span className="text-[#59ff00]">{selectedPlan} Plan</span>
+                </DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  Fill in your details and we&apos;ll send you a customized quote within 24 hours.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-5 mt-2">
+                {/* Name & Email */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-300 text-sm">
+                      Full Name <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => updateField('name', e.target.value)}
+                      placeholder="Rahul Sharma"
+                      className="bg-[#1a1a1a] border-[#2a2a2a] text-white focus:border-[#59ff00] h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-300 text-sm">
+                      Email <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => updateField('email', e.target.value)}
+                      placeholder="rahul@company.com"
+                      className="bg-[#1a1a1a] border-[#2a2a2a] text-white focus:border-[#59ff00] h-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone & Company */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-gray-300 text-sm">
+                      Phone Number <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => updateField('phone', e.target.value)}
+                      placeholder="+91-9876543210"
+                      className="bg-[#1a1a1a] border-[#2a2a2a] text-white focus:border-[#59ff00] h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-gray-300 text-sm">Company Name</Label>
+                    <Input
+                      value={formData.company}
+                      onChange={(e) => updateField('company', e.target.value)}
+                      placeholder="Hotel Sunrise Pvt Ltd"
+                      className="bg-[#1a1a1a] border-[#2a2a2a] text-white focus:border-[#59ff00] h-10"
+                    />
+                  </div>
+                </div>
+
+                {/* City */}
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-sm">
+                    <MapPin className="w-3.5 h-3.5 inline mr-1" />
+                    City <span className="text-red-400">*</span>
+                  </Label>
+                  <Input
+                    value={formData.city}
+                    onChange={(e) => updateField('city', e.target.value)}
+                    placeholder="New Delhi"
+                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white focus:border-[#59ff00] h-10"
+                  />
+                </div>
+
+                {/* Kitchen Size */}
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-sm">
+                    <Building2 className="w-3.5 h-3.5 inline mr-1" />
+                    Kitchen Size <span className="text-red-400">*</span>
+                  </Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {kitchenSizes.map((size) => (
+                      <button
+                        key={size.value}
+                        type="button"
+                        onClick={() => updateField('kitchenSize', size.value)}
+                        className={`p-3 rounded-lg border text-sm text-center transition-all ${
+                          formData.kitchenSize === size.value
+                            ? 'bg-[#59ff00]/10 border-[#59ff00]/50 text-[#59ff00]'
+                            : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#59ff00]/30'
+                        }`}
+                      >
+                        <span className="text-lg block mb-1">{size.icon}</span>
+                        <span className="text-xs">{size.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Equipment Selection */}
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-sm">
+                    <Wrench className="w-3.5 h-3.5 inline mr-1" />
+                    Equipment to Cover <span className="text-gray-600">(select all that apply)</span>
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {equipmentOptions.map((eq) => (
+                      <button
+                        key={eq}
+                        type="button"
+                        onClick={() => toggleEquipment(eq)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                          selectedEquipment.includes(eq)
+                            ? 'bg-[#59ff00]/10 border-[#59ff00]/50 text-[#59ff00]'
+                            : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#59ff00]/30'
+                        }`}
+                      >
+                        {selectedEquipment.includes(eq) && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
+                        {eq}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Message */}
+                <div className="space-y-2">
+                  <Label className="text-gray-300 text-sm">
+                    <Mail className="w-3.5 h-3.5 inline mr-1" />
+                    Additional Message
+                  </Label>
+                  <Textarea
+                    value={formData.message}
+                    onChange={(e) => updateField('message', e.target.value)}
+                    placeholder="Tell us about your kitchen setup, specific equipment concerns, or any questions..."
+                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white focus:border-[#59ff00] min-h-[80px] resize-none"
+                    rows={3}
+                  />
+                </div>
+
+                {/* Plan summary */}
+                <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-xs">Selected Plan</p>
+                    <p className="text-white font-semibold text-sm">{selectedPlan} Plan</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-gray-400 text-xs">Starting at</p>
+                    <p className="text-[#59ff00] font-[family-name:var(--font-poppins)] font-bold text-lg">
+                      {selectedPlan === 'Basic' ? formatPrice(15000) :
+                       selectedPlan === 'Standard' ? formatPrice(35000) :
+                       selectedPlan === 'Premium' ? formatPrice(65000) : 'Custom'}
+                      <span className="text-gray-500 text-xs font-normal">/yr</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Submit */}
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="w-full h-12 bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold text-base neon-glow"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Quote Request
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-gray-600 text-xs text-center">
+                  By submitting, you agree to our Privacy Policy. We&apos;ll respond within 24 hours.
+                </p>
+              </div>
+            </>
+          ) : (
+            /* ─── Success State ─── */
+            <div className="py-8 text-center">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#59ff00]/10 border-2 border-[#59ff00] flex items-center justify-center">
+                <CheckCircle2 className="w-10 h-10 text-[#59ff00]" />
+              </div>
+              <h3 className="font-[family-name:var(--font-poppins)] text-2xl font-bold text-white mb-2">
+                Quote Request Submitted!
+              </h3>
+              <p className="text-gray-400 mb-4 max-w-sm mx-auto">
+                Thank you for your interest in our {selectedPlan} AMC Plan. Our team will review your request and contact you within 24 hours.
+              </p>
+
+              {referenceNumber && (
+                <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 mb-6 max-w-xs mx-auto">
+                  <p className="text-gray-500 text-xs mb-1">Your Reference Number</p>
+                  <p className="text-[#59ff00] font-[family-name:var(--font-poppins)] font-bold text-xl">{referenceNumber}</p>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
+                <Button
+                  onClick={() => handleDialogClose(false)}
+                  className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"
+                >
+                  Done
+                </Button>
+                <a
+                  href="tel:+911145678900"
+                  className="text-gray-400 hover:text-[#59ff00] text-sm flex items-center gap-2 transition-colors"
+                >
+                  <Phone className="w-4 h-4" />
+                  Call us for urgent queries
+                </a>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
