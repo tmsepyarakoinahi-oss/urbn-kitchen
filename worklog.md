@@ -106,3 +106,37 @@ Stage Summary:
 - All tabs have proper data fetching, forms, and interactive elements
 - Consistent dark industrial theme with green accent
 - Responsive design with animated transitions
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Fix Runtime TypeError in CustomerPortal and add AMC public page
+
+Work Log:
+- Identified Runtime TypeError in CustomerPortal.tsx line 323: `contracts.map()` called on undefined
+- Root cause: AMC API returns `{ data: { contracts: [...], pagination: {...} } }` but code was setting `amcData.data` (the nested object) instead of `amcData.data.contracts` (the array)
+- Same issue with service-requests API returning `{ data: { serviceRequests: [...], pagination: {...} } }`
+- Fixed CustomerPortal.tsx:
+  - Line 83: Changed `setAmcContracts(amcData.data || [])` to `setAmcContracts(amcData.data?.contracts || [])`
+  - Line 84: Changed `setServiceRequests(serviceData.data || [])` to `setServiceRequests(serviceData.data?.serviceRequests || [])`
+  - Line 119: Same fix for service requests after creating a new one
+  - Added null safety checks: `!contracts || contracts.length === 0` and `!requests || requests.length === 0`
+- Added 'amc' to AppView type in store.ts
+- Added AMC link to Navbar (between Products and About)
+- Added AMC Plans link to Footer quick links
+- Created AmcPage.tsx (746 lines) with 7 sections:
+  - Hero section with trust badges
+  - AMC Plans (Basic ₹15K, Standard ₹35K, Premium ₹65K) with feature lists
+  - Coverage section (6 equipment categories)
+  - How It Works (4-step process)
+  - Why AMC stats section
+  - FAQ section with accordion
+  - CTA section
+- Added `currentView === 'amc'` routing in page.tsx
+
+Stage Summary:
+- CustomerPortal Runtime TypeError fixed - AMC and Service tabs now work correctly
+- New AMC public page created with 7 comprehensive sections
+- AMC navigation added to Navbar and Footer
+- All lint checks pass
+- Browser tested: no errors on any page

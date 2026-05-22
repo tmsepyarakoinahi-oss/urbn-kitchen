@@ -9,6 +9,7 @@ import { useAppStore, type AppView } from '@/lib/store'
 const quickLinks: { label: string; view: AppView }[] = [
   { label: 'Home', view: 'home' },
   { label: 'Products', view: 'products' },
+  { label: 'AMC Plans', view: 'amc' },
   { label: 'About Us', view: 'about' },
   { label: 'Contact', view: 'contact' },
 ]

@@ -80,8 +80,8 @@ export default function CustomerPortal() {
         const amcData = await amcRes.json()
         const serviceData = await serviceRes.json()
         if (ordersData.status) setOrders(ordersData.data?.orders || ordersData.data || [])
-        if (amcData.status) setAmcContracts(amcData.data || [])
-        if (serviceData.status) setServiceRequests(serviceData.data || [])
+        if (amcData.status) setAmcContracts(amcData.data?.contracts || [])
+        if (serviceData.status) setServiceRequests(serviceData.data?.serviceRequests || [])
       } catch (err) {
         console.error('Failed to load customer data:', err)
       } finally {
@@ -116,7 +116,7 @@ export default function CustomerPortal() {
         setServiceDialog(false)
         const serviceRes = await fetch('/api/service-requests')
         const serviceData = await serviceRes.json()
-        if (serviceData.status) setServiceRequests(serviceData.data || [])
+        if (serviceData.status) setServiceRequests(serviceData.data?.serviceRequests || [])
       }
     } catch { toast.error('Failed to raise service request') }
   }
@@ -312,7 +312,7 @@ function AmcTab({ contracts, loading }: any) {
   return (
     <div>
       <h2 className="font-[family-name:var(--font-poppins)] text-lg font-bold text-white mb-4">AMC Contracts</h2>
-      {contracts.length === 0 ? (
+      {!contracts || contracts.length === 0 ? (
         <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-12 text-center">
           <Wrench className="w-12 h-12 text-gray-700 mx-auto mb-3" />
           <h3 className="text-gray-400 font-semibold mb-1">No AMC Contracts</h3>
@@ -361,7 +361,7 @@ function ServiceTab({ requests, loading, onRaise }: any) {
         <h2 className="font-[family-name:var(--font-poppins)] text-lg font-bold text-white">Service Requests</h2>
         <Button onClick={onRaise} size="sm" className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90"><Plus className="w-4 h-4 mr-1" /> Raise Request</Button>
       </div>
-      {requests.length === 0 ? (
+      {!requests || requests.length === 0 ? (
         <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-12 text-center">
           <Headphones className="w-12 h-12 text-gray-700 mx-auto mb-3" />
           <h3 className="text-gray-400 font-semibold mb-1">No Service Requests</h3>

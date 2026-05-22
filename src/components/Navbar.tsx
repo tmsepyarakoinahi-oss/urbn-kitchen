@@ -18,6 +18,7 @@ import { useAppStore, type AppView } from '@/lib/store'
 const navLinks: { label: string; view: AppView }[] = [
   { label: 'Home', view: 'home' },
   { label: 'Products', view: 'products' },
+  { label: 'AMC', view: 'amc' },
   { label: 'About', view: 'about' },
   { label: 'Contact', view: 'contact' },
 ]

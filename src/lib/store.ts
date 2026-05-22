@@ -7,6 +7,7 @@ export type AppView =
   | 'cart' 
   | 'about' 
   | 'contact'
+  | 'amc'
   | 'login'
   | 'register'
   | 'admin'
