@@ -38,6 +38,7 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${poppins.variable} antialiased bg-[#0b0b0b] text-white font-sans`}
+        suppressHydrationWarning
       >
         {children}
         <Toaster richColors position="top-right" />

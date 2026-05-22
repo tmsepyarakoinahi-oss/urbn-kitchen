@@ -1,5 +1,6 @@
 'use client'
 
+import { useSyncExternalStore } from 'react'
 import { Flame, Phone, Mail, MapPin, Facebook, Instagram, Twitter, Linkedin, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -23,8 +24,11 @@ const productCategories = [
   'Display Counters',
 ]
 
+const emptySubscribe = () => () => {}
+
 export default function Footer() {
   const { setView, setSelectedCategory } = useAppStore()
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false)
 
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category.toLowerCase().replace(/\s+/g, '-'))
@@ -161,7 +165,7 @@ export default function Footer() {
       <Separator className="bg-[#1a1a1a]" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
-          <p>&copy; {new Date().getFullYear()} Urban Kitchens Manufacturing & Solutions. All rights reserved.</p>
+          <p>&copy; {mounted ? new Date().getFullYear() : '2025'} Urban Kitchens Manufacturing & Solutions. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <button className="hover:text-[#59ff00] transition-colors">Privacy Policy</button>
             <button className="hover:text-[#59ff00] transition-colors">Terms of Service</button>
