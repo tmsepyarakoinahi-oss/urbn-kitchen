@@ -1,12 +1,13 @@
-// Simple hash function for demo purposes
+import bcrypt from 'bcryptjs'
+
+const SALT_ROUNDS = 12
+
 export async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password + 'urban_kitchens_salt_2024')
-  const hash = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+  const hash = await bcrypt.hash(password, SALT_ROUNDS)
+  return hash
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const passwordHash = await hashPassword(password)
-  return passwordHash === hash
+  const match = await bcrypt.compare(password, hash)
+  return match
 }

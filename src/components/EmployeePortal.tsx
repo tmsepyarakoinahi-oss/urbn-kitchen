@@ -274,7 +274,7 @@ export default function EmployeePortal() {
                         const now = new Date()
                         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay()
                         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
-                        const cells = []
+                        const cells: React.ReactElement[] = []
                         for (let i = 0; i < firstDay; i++) cells.push(<div key={`e-${i}`} />)
                         for (let d = 1; d <= daysInMonth; d++) {
                           const date = new Date(now.getFullYear(), now.getMonth(), d)

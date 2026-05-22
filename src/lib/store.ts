@@ -79,6 +79,7 @@ interface AppState {
   toggleMobileMenu: () => void
   setShowQuickView: (show: boolean, productId?: string | null) => void
   setProductDetail: (productId: string) => void
+  setLastOrder: (order: any | null) => void
 }
 
 export interface CartItem {

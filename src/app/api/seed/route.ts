@@ -2,8 +2,28 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
+    // Block seed endpoint in production
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json(
+        { status: false, message: 'Seed endpoint is disabled in production' },
+        { status: 403 }
+      )
+    }
+
+    // Verify secret token
+    const { searchParams } = new URL(request.url)
+    const secret = searchParams.get('secret')
+    const expectedSecret = process.env.SEED_SECRET
+
+    if (!expectedSecret || secret !== expectedSecret) {
+      return NextResponse.json(
+        { status: false, message: 'Invalid or missing secret token. Provide ?secret=<SEED_SECRET>' },
+        { status: 403 }
+      )
+    }
+
     // Clean up all existing data (in reverse dependency order)
     await db.salarySlip.deleteMany()
     await db.leave.deleteMany()
@@ -117,7 +137,7 @@ export async function POST() {
       { categoryId: catDisplay.id, name: 'Baker Pride Cake Display Counter', slug: 'baker-pride-cake-display', description: 'Premium cake display counter with 360° visibility, marble base, and refrigerated interior. Perfect for bakeries and patisseries.', shortDescription: 'Premium cake display with marble base', price: 98000, steelGrade: 'SS316', capacity: '3 Tier', dimensions: '1200 x 600 x 1500 mm', stock: 5, leadTime: '10-14 days', featured: false },
     ]
 
-    const products = []
+    const products: any[] = []
     for (const pData of productsData) {
       const product = await db.product.create({ data: pData })
       products.push(product)
@@ -127,7 +147,7 @@ export async function POST() {
     const orderStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'delivered', 'cancelled', 'pending']
     const paymentStatuses = ['pending', 'paid', 'paid', 'paid', 'paid', 'paid', 'refunded', 'pending']
 
-    const orders = []
+    const orders: any[] = []
     for (let i = 0; i < 8; i++) {
       const customer = customers[i % customers.length]
       const product1 = products[i * 3 % products.length]
@@ -174,7 +194,7 @@ export async function POST() {
       { name: 'Biryani House Chain', company: 'Biryani House Pvt Ltd', phone: '+91-9867890123', email: 'setup@biryanihouse.com', city: 'Hyderabad', requirement: 'Dum cooking equipment', message: 'Looking for specialized dum cooking ranges and display counters for 5 new outlets', status: 'lost', source: 'social', assignedTo: managers[0].id },
     ]
 
-    const leads = []
+    const leads: any[] = []
     for (const ld of leadsData) {
       const lead = await db.lead.create({ data: ld })
       leads.push(lead)
@@ -203,7 +223,7 @@ export async function POST() {
       { userId: managers[1].id, department: 'Operations', designation: 'Operations Manager', salary: 52000, joiningDate: new Date(2020, 7, 15), status: 'active' },
     ]
 
-    const empRecords = []
+    const empRecords: any[] = []
     for (const ed of [...employeesData, ...managerEmployees]) {
       const emp = await db.employee.create({ data: ed })
       empRecords.push(emp)
@@ -217,7 +237,7 @@ export async function POST() {
       { customerId: customers[3].id, plan: 'Basic', startDate: new Date(2023, 0, 1), endDate: new Date(2024, 11, 31), amount: 25000, status: 'expired', coverage: JSON.stringify(['Burners only']) },
     ]
 
-    const amcContracts = []
+    const amcContracts: any[] = []
     for (const ad of amcData) {
       const amc = await db.amcContract.create({ data: ad })
       amcContracts.push(amc)
@@ -335,7 +355,25 @@ export async function POST() {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { status: false, message: 'Seed endpoint is disabled in production' },
+      { status: 403 }
+    )
+  }
+
+  const { searchParams } = new URL(request.url)
+  const secret = searchParams.get('secret')
+  const expectedSecret = process.env.SEED_SECRET
+
+  if (!expectedSecret || secret !== expectedSecret) {
+    return NextResponse.json(
+      { status: false, message: 'Invalid or missing secret token. Provide ?secret=<SEED_SECRET>' },
+      { status: 403 }
+    )
+  }
+
   return NextResponse.json({
     status: true,
     message: 'Seed endpoint is ready. Send a POST request to seed the database.',
