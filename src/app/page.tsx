@@ -1,22 +1,26 @@
 'use client'
 
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import dynamic from 'next/dynamic'
 import { useAppStore } from '@/lib/store'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
-import HomePage from '@/components/HomePage'
-import ProductsPage from '@/components/ProductsPage'
-import ProductDetailPage from '@/components/ProductDetailPage'
-import CartPage from '@/components/CartPage'
-import AboutPage from '@/components/AboutPage'
-import ContactPage from '@/components/ContactPage'
-import AuthPages from '@/components/AuthPages'
-import AdminDashboard from '@/components/AdminDashboard'
-import CustomerPortal from '@/components/CustomerPortal'
-import EmployeePortal from '@/components/EmployeePortal'
-import AmcPage from '@/components/AmcPage'
-import CheckoutPage from '@/components/CheckoutPage'
-import OrderSuccessPage from '@/components/OrderSuccessPage'
+
+// Dynamic imports to reduce initial compilation memory
+// Heavy components are loaded on-demand only when their view is active
+const HomePage = dynamic(() => import('@/components/HomePage'), { ssr: false })
+const ProductsPage = dynamic(() => import('@/components/ProductsPage'), { ssr: false })
+const ProductDetailPage = dynamic(() => import('@/components/ProductDetailPage'), { ssr: false })
+const CartPage = dynamic(() => import('@/components/CartPage'), { ssr: false })
+const AboutPage = dynamic(() => import('@/components/AboutPage'), { ssr: false })
+const ContactPage = dynamic(() => import('@/components/ContactPage'), { ssr: false })
+const AuthPages = dynamic(() => import('@/components/AuthPages'), { ssr: false })
+const AdminDashboard = dynamic(() => import('@/components/AdminDashboard'), { ssr: false })
+const CustomerPortal = dynamic(() => import('@/components/CustomerPortal'), { ssr: false })
+const EmployeePortal = dynamic(() => import('@/components/EmployeePortal'), { ssr: false })
+const AmcPage = dynamic(() => import('@/components/AmcPage'), { ssr: false })
+const CheckoutPage = dynamic(() => import('@/components/CheckoutPage'), { ssr: false })
+const OrderSuccessPage = dynamic(() => import('@/components/OrderSuccessPage'), { ssr: false })
 
 // Hydration-safe client mount detection using useSyncExternalStore
 const emptySubscribe = () => () => {}
@@ -25,6 +29,18 @@ function useIsMounted() {
     emptySubscribe,
     () => true,   // client snapshot
     () => false   // server snapshot
+  )
+}
+
+// Loading fallback for dynamic components
+function PageLoader() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-10 h-10 border-2 border-[#59ff00]/30 border-t-[#59ff00] rounded-full animate-spin" />
+        <p className="text-gray-500 text-sm">Loading...</p>
+      </div>
+    </div>
   )
 }
 
@@ -59,7 +75,6 @@ export default function Home() {
   const showFooter = !['admin', 'employee-portal'].includes(currentView)
 
   // Show minimal skeleton during SSR to prevent hydration mismatches
-  // (browser extensions like 1Password add fdprocessedid attributes to buttons/inputs)
   if (!mounted) {
     return (
       <div className="min-h-screen bg-[#0b0b0b] text-white flex flex-col">
@@ -74,24 +89,46 @@ export default function Home() {
     )
   }
 
+  const renderView = () => {
+    switch (currentView) {
+      case 'home':
+        return <HomePage />
+      case 'products':
+        return <ProductsPage />
+      case 'product-detail':
+        return <ProductDetailPage />
+      case 'cart':
+        return <CartPage />
+      case 'checkout':
+        return <CheckoutPage />
+      case 'order-success':
+        return <OrderSuccessPage />
+      case 'about':
+        return <AboutPage />
+      case 'amc':
+        return <AmcPage />
+      case 'contact':
+        return <ContactPage />
+      case 'login':
+      case 'register':
+        return <AuthPages />
+      case 'admin':
+        return <AdminDashboard />
+      case 'customer-portal':
+        return <CustomerPortal />
+      case 'employee-portal':
+        return <EmployeePortal />
+      default:
+        return <HomePage />
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#0b0b0b] text-white flex flex-col" suppressHydrationWarning>
       <Navbar />
 
       <main className="flex-1">
-        {currentView === 'home' && <HomePage />}
-        {currentView === 'products' && <ProductsPage />}
-        {currentView === 'product-detail' && <ProductDetailPage />}
-        {currentView === 'cart' && <CartPage />}
-        {currentView === 'checkout' && <CheckoutPage />}
-        {currentView === 'order-success' && <OrderSuccessPage />}
-        {currentView === 'about' && <AboutPage />}
-        {currentView === 'amc' && <AmcPage />}
-        {currentView === 'contact' && <ContactPage />}
-        {(currentView === 'login' || currentView === 'register') && <AuthPages />}
-        {currentView === 'admin' && <AdminDashboard />}
-        {currentView === 'customer-portal' && <CustomerPortal />}
-        {currentView === 'employee-portal' && <EmployeePortal />}
+        {renderView()}
       </main>
 
       {showFooter && <Footer />}
