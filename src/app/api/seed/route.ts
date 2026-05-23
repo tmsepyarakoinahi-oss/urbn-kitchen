@@ -4,15 +4,7 @@ import { hashPassword } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
-    // Block seed endpoint in production
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json(
-        { status: false, message: 'Seed endpoint is disabled in production' },
-        { status: 403 }
-      )
-    }
-
-    // Verify secret token
+    // Verify secret token (required in all environments)
     const { searchParams } = new URL(request.url)
     const secret = searchParams.get('secret')
     const expectedSecret = process.env.SEED_SECRET
@@ -356,13 +348,6 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json(
-      { status: false, message: 'Seed endpoint is disabled in production' },
-      { status: 403 }
-    )
-  }
-
   const { searchParams } = new URL(request.url)
   const secret = searchParams.get('secret')
   const expectedSecret = process.env.SEED_SECRET
