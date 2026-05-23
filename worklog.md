@@ -46,3 +46,42 @@ Stage Summary:
 - Seed endpoint protected against accidental production data wipes
 - All deployment artifacts created (.env.production.template, ecosystem.config.js, DEPLOY.md)
 - No lint errors
+
+---
+Task ID: 2
+Agent: main
+Task: Create production dist package for Hostinger VPS deployment
+
+Work Log:
+- Killed existing processes and ran `next build` to create production build
+- Build completed successfully in 8.1s with Turbopack, all routes compiled
+- Verified standalone output at `.next/standalone/` (153M total)
+- Created distribution package at `dist/urban-kitchens/` with:
+  - Standalone server build (server.js + .next + node_modules)
+  - Static assets (.next/static/ with chunks, media, build ID)
+  - Public assets (logo.svg, robots.txt)
+  - Database (db/custom.db)
+  - Prisma schema (prisma/schema.prisma)
+- Updated ecosystem.config.js for production deployment:
+  - Changed cwd to /var/www/urban-kitchens
+  - Added max_restarts, restart_delay, min_uptime, kill_timeout
+  - Log paths to /var/log/urban-kitchens/
+- Created .env.example with all required env vars documented
+- Created nginx.conf with:
+  - HTTP→HTTPS redirect
+  - SSL hardening (TLSv1.2/1.3, HSTS, security headers)
+  - Rate limiting (30r/m for API, 60r/m general)
+  - Static file caching (365d for _next/static, 30d for images)
+  - Sensitive file blocking
+- Created deploy.sh (automated 8-step deployment script)
+- Created update.sh (application update script)
+- Updated DEPLOY.md with comprehensive deployment guide
+- Created tar.gz archive: urban-kitchens-production.tar.gz (53M)
+- Tested production server: HTTP 200 OK, brand name renders correctly
+
+Stage Summary:
+- Production dist package ready at `dist/urban-kitchens/`
+- Archive at `dist/urban-kitchens-production.tar.gz` (53M)
+- All deployment configs included: PM2, Nginx, .env, deploy script
+- Server verified working from dist directory
+- Full DEPLOY.md guide with step-by-step Hostinger VPS instructions
