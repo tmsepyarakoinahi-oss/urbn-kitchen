@@ -62,7 +62,7 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
       <!-- Header -->
       <div style="background: linear-gradient(135deg, #0b0b0b 0%, #1a1a1a 100%); padding: 24px 32px; border-bottom: 2px solid #59ff00;">
         <h1 style="margin: 0; color: #59ff00; font-size: 22px; font-weight: 700;">
-          Urban Kitchens — New AMC Quote Request
+          Urban Kitchen — New AMC Quote Request
         </h1>
         <p style="margin: 8px 0 0; color: #9ca3af; font-size: 13px;">
           Received ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
@@ -120,10 +120,10 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
       <!-- Footer -->
       <div style="background: #0b0b0b; padding: 16px 32px; border-top: 1px solid #1a1a1a; text-align: center;">
         <p style="margin: 0; color: #6b7280; font-size: 12px;">
-          Urban Kitchens Manufacturing & Solutions — Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020
+          Urban Kitchen Manufacturing & Solutions — Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020
         </p>
         <p style="margin: 4px 0 0; color: #6b7280; font-size: 11px;">
-          This is an automated quote request from the Urban Kitchens website.
+          This is an automated quote request from the Urban Kitchen website.
         </p>
       </div>
     </div>
@@ -131,7 +131,7 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
 
   try {
     const info = await transporter.sendMail({
-      from: `"Urban Kitchens Website" <${EMAIL_FROM}>`,
+      from: `"Urban Kitchen Website" <${EMAIL_FROM}>`,
       to: BUSINESS_EMAIL,
       replyTo: data.email,
       subject: `New AMC Quote Request — ${data.plan} Plan from ${data.name}`,
@@ -158,7 +158,7 @@ export async function sendAmcQuoteConfirmation(data: AmcQuoteEmailData): Promise
     <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #111; border: 1px solid #2a2a2a; border-radius: 12px; overflow: hidden;">
       <div style="background: linear-gradient(135deg, #0b0b0b 0%, #1a1a1a 100%); padding: 24px 32px; border-bottom: 2px solid #59ff00;">
         <h1 style="margin: 0; color: #59ff00; font-size: 22px; font-weight: 700;">
-          Urban Kitchens — AMC Quote Request Received
+          Urban Kitchen — AMC Quote Request Received
         </h1>
       </div>
       <div style="padding: 28px 32px;">
@@ -180,7 +180,7 @@ export async function sendAmcQuoteConfirmation(data: AmcQuoteEmailData): Promise
       </div>
       <div style="background: #0b0b0b; padding: 16px 32px; border-top: 1px solid #1a1a1a; text-align: center;">
         <p style="margin: 0; color: #6b7280; font-size: 12px;">
-          Urban Kitchens Manufacturing & Solutions — New Delhi, India
+          Urban Kitchen Manufacturing & Solutions — New Delhi, India
         </p>
       </div>
     </div>
@@ -188,9 +188,9 @@ export async function sendAmcQuoteConfirmation(data: AmcQuoteEmailData): Promise
 
   try {
     const info = await transporter.sendMail({
-      from: `"Urban Kitchens" <${EMAIL_FROM}>`,
+      from: `"Urban Kitchen" <${EMAIL_FROM}>`,
       to: data.email,
-      subject: `Your AMC Quote Request — ${data.plan} Plan | Urban Kitchens`,
+      subject: `Your AMC Quote Request — ${data.plan} Plan | Urban Kitchen`,
       html: htmlBody,
     })
 

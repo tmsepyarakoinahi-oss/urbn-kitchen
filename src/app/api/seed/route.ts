@@ -320,7 +320,7 @@ export async function POST(request: Request) {
     // ── Settings ──
     await db.setting.createMany({
       data: [
-        { key: 'company_name', value: 'Urban Kitchens Manufacturing & Solutions' },
+        { key: 'company_name', value: 'Urban Kitchen Manufacturing & Solutions' },
         { key: 'company_email', value: 'info@urbankitchens.com' },
         { key: 'company_phone', value: '+91-11-45678900' },
         { key: 'company_address', value: 'Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020' },

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Image from 'next/image'
 import {
   LayoutDashboard, Package, ShoppingCart, Users, UserCog, Shield,
   Settings, LogOut, Menu, Search, Plus, Edit, Trash2, Eye,
@@ -983,7 +984,7 @@ export default function AdminDashboard() {
         <CardContent className="p-6 space-y-4">
           <div className="space-y-2">
             <Label className="text-gray-300">Company Name</Label>
-            <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={settingsData.name} onChange={(e) => setSettingsData(prev => ({ ...prev, name: e.target.value }))} placeholder="Urban Kitchens Manufacturing & Solutions" />
+            <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={settingsData.name} onChange={(e) => setSettingsData(prev => ({ ...prev, name: e.target.value }))} placeholder="Urban Kitchen Manufacturing & Solutions" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -1031,12 +1032,10 @@ export default function AdminDashboard() {
       <aside className={`hidden lg:flex flex-col bg-[#101010] border-r border-[#2a2a2a] transition-all duration-300 relative ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
         <div className="flex flex-col h-full">
           <div className="p-4 flex items-center gap-3 border-b border-[#2a2a2a]">
-            <div className="w-9 h-9 rounded-lg bg-[#59ff00] flex items-center justify-center flex-shrink-0">
-              <span className="text-black font-black text-sm">UK</span>
-            </div>
+            <Image src="/logo.jpg" alt="Urban Kitchen" width={36} height={36} className="w-9 h-9 rounded-lg object-contain flex-shrink-0" />
             {!sidebarCollapsed && (
               <div className="overflow-hidden">
-                <h1 className="text-white font-bold text-sm leading-tight">Urban Kitchens</h1>
+                <h1 className="text-white font-bold text-sm leading-tight">Urban Kitchen</h1>
                 <p className="text-[#59ff00] text-[10px] font-medium tracking-wider uppercase">Admin Panel</p>
               </div>
             )}
@@ -1084,11 +1083,9 @@ export default function AdminDashboard() {
           </SheetHeader>
           <div className="flex flex-col h-full">
             <div className="p-4 flex items-center gap-3 border-b border-[#2a2a2a]">
-              <div className="w-9 h-9 rounded-lg bg-[#59ff00] flex items-center justify-center flex-shrink-0">
-                <span className="text-black font-black text-sm">UK</span>
-              </div>
+              <Image src="/logo.jpg" alt="Urban Kitchen" width={36} height={36} className="w-9 h-9 rounded-lg object-contain flex-shrink-0" />
               <div className="overflow-hidden">
-                <h1 className="text-white font-bold text-sm leading-tight">Urban Kitchens</h1>
+                <h1 className="text-white font-bold text-sm leading-tight">Urban Kitchen</h1>
                 <p className="text-[#59ff00] text-[10px] font-medium tracking-wider uppercase">Admin Panel</p>
               </div>
             </div>
@@ -1131,7 +1128,7 @@ export default function AdminDashboard() {
             </Button>
             <div>
               <h2 className="text-white font-semibold text-lg capitalize">{adminTab}</h2>
-              <p className="text-gray-500 text-xs">Urban Kitchens Admin Panel</p>
+              <p className="text-gray-500 text-xs">Urban Kitchen Admin Panel</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

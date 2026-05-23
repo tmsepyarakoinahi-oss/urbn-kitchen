@@ -265,7 +265,7 @@ const faqs = [
   {
     question: 'What brands/equipment do you service?',
     answer:
-      'We service all equipment manufactured by Urban Kitchens as well as major commercial kitchen brands including Hobart, Rational, Vulcan, Garland, True, Beverage-Air, and more. Our technicians are trained to handle SS304/SS316 stainless steel equipment, gas and electric cooking equipment, refrigeration systems, and ventilation installations.',
+      'We service all equipment manufactured by Urban Kitchen as well as major commercial kitchen brands including Hobart, Rational, Vulcan, Garland, True, Beverage-Air, and more. Our technicians are trained to handle SS304/SS316 stainless steel equipment, gas and electric cooking equipment, refrigeration systems, and ventilation installations.',
   },
   {
     question: 'How do I raise a service request?',

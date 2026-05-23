@@ -1162,7 +1162,7 @@ export default function CheckoutPage() {
           <DialogHeader className="p-4 pb-0">
             <DialogTitle className="text-white text-base">Pay for your order</DialogTitle>
             <DialogDescription className="text-gray-400 text-sm">
-              Urban Kitchens is collecting the payment
+              Urban Kitchen is collecting the payment
             </DialogDescription>
           </DialogHeader>
 

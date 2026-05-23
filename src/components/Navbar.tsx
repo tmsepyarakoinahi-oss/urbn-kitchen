@@ -8,8 +8,8 @@ import {
   User,
   Menu,
   X,
-  Flame,
 } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -67,12 +67,16 @@ export default function Navbar() {
               onClick={() => handleNavClick('home')}
               className="flex items-center gap-2 group"
             >
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-[#59ff00]/10 border border-[#59ff00]/30 flex items-center justify-center group-hover:bg-[#59ff00]/20 transition-colors">
-                <Flame className="w-5 h-5 text-[#59ff00]" />
-              </div>
+              <Image
+                src="/logo.jpg"
+                alt="Urban Kitchen"
+                width={36}
+                height={36}
+                className="w-8 h-8 md:w-9 md:h-9 rounded-lg object-contain group-hover:scale-105 transition-transform"
+              />
               <span className="font-[family-name:var(--font-poppins)] text-lg md:text-xl font-bold tracking-tight">
                 <span className="text-[#59ff00] neon-text">Urban</span>
-                <span className="text-white ml-1">Kitchens</span>
+                <span className="text-white ml-1">Kitchen</span>
               </span>
             </button>
 
@@ -196,7 +200,7 @@ export default function Navbar() {
           <SheetHeader>
             <SheetTitle className="font-[family-name:var(--font-poppins)] text-left">
               <span className="text-[#59ff00]">Urban</span>
-              <span className="text-white ml-1">Kitchens</span>
+              <span className="text-white ml-1">Kitchen</span>
             </SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-2 mt-4 px-2">

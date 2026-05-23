@@ -416,7 +416,7 @@ export default function HomePage() {
             className="text-center mb-12"
           >
             <motion.h2 variants={fadeUp} custom={0} className="font-[family-name:var(--font-poppins)] text-2xl md:text-3xl lg:text-4xl font-bold mb-3">
-              Why Choose <span className="text-[#59ff00]">Urban Kitchens</span>
+              Why Choose <span className="text-[#59ff00]">Urban Kitchen</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-gray-500 max-w-xl mx-auto">
               We deliver more than equipment — we deliver reliability
@@ -488,7 +488,7 @@ export default function HomePage() {
               {
                 name: 'Anand Restaurant',
                 role: 'Restaurant Chain Owner',
-                text: 'Urban Kitchens equipped all 12 of our outlets. The build quality is exceptional and their after-sales support is unmatched in the industry.',
+                text: 'Urban Kitchen equipped all 12 of our outlets. The build quality is exceptional and their after-sales support is unmatched in the industry.',
                 rating: 5,
               },
               {

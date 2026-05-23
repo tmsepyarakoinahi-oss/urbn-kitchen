@@ -15,15 +15,15 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Urban Kitchens — Manufacturing & Solutions | Premium Commercial Kitchen Equipment",
+  title: "Urban Kitchen — Manufacturing & Solutions | Premium Commercial Kitchen Equipment",
   description: "India's leading manufacturer of commercial kitchen equipment. Premium industrial burners, ranges, refrigeration, and complete kitchen solutions for hotels, restaurants, and catering businesses.",
-  keywords: ["commercial kitchen", "industrial equipment", "kitchen solutions", "hotel kitchen", "restaurant equipment", "Urban Kitchens"],
-  authors: [{ name: "Urban Kitchens" }],
+  keywords: ["commercial kitchen", "industrial equipment", "kitchen solutions", "hotel kitchen", "restaurant equipment", "Urban Kitchen"],
+  authors: [{ name: "Urban Kitchen" }],
   icons: {
-    icon: "/logo.svg",
+    icon: "/logo.jpg",
   },
   openGraph: {
-    title: "Urban Kitchens — Manufacturing & Solutions",
+    title: "Urban Kitchen — Manufacturing & Solutions",
     description: "Premium commercial kitchen equipment manufacturer",
     type: "website",
   },

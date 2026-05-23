@@ -1,7 +1,8 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { Flame, Phone, Mail, MapPin, Facebook, Instagram, Twitter, Linkedin, ArrowRight } from 'lucide-react'
+import { Phone, Mail, MapPin, Facebook, Instagram, Twitter, Linkedin, ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
@@ -43,12 +44,16 @@ export default function Footer() {
           {/* Company Info */}
           <div className="sm:col-span-2 lg:col-span-1">
             <button onClick={() => setView('home')} className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-[#59ff00]/10 border border-[#59ff00]/30 flex items-center justify-center">
-                <Flame className="w-5 h-5 text-[#59ff00]" />
-              </div>
+              <Image
+                src="/logo.jpg"
+                alt="Urban Kitchen"
+                width={36}
+                height={36}
+                className="w-8 h-8 rounded-lg object-contain"
+              />
               <span className="font-[family-name:var(--font-poppins)] text-lg font-bold">
                 <span className="text-[#59ff00]">Urban</span>
-                <span className="text-white ml-1">Kitchens</span>
+                <span className="text-white ml-1">Kitchen</span>
               </span>
             </button>
             <p className="text-gray-500 text-sm leading-relaxed mb-4">
@@ -165,7 +170,7 @@ export default function Footer() {
       <Separator className="bg-[#1a1a1a]" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-600">
-          <p>&copy; {mounted ? new Date().getFullYear() : '2025'} Urban Kitchens Manufacturing & Solutions. All rights reserved.</p>
+          <p>&copy; {mounted ? new Date().getFullYear() : '2025'} Urban Kitchen Manufacturing & Solutions. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <button className="hover:text-[#59ff00] transition-colors">Privacy Policy</button>
             <button className="hover:text-[#59ff00] transition-colors">Terms of Service</button>

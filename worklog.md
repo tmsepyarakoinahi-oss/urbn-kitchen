@@ -1,4 +1,4 @@
-# Urban Kitchens Project Worklog
+# Urban Kitchen Project Worklog
 
 ---
 Task ID: 1
@@ -116,3 +116,32 @@ Stage Summary:
 - Package includes: standalone Next.js build, static assets, public folder, SQLite database (pre-seeded), Prisma schema, PM2 config, Nginx config, automated deploy/update scripts, comprehensive DEPLOY.md guide
 - Key design decisions: (1) Used SEED_SECRET instead of ADMIN_SECRET to match actual code, (2) Used relative DATABASE_URL path for portability, (3) Removed production seed call from deploy.sh since seed endpoint blocks in NODE_ENV=production, (4) DB is pre-seeded in the package
 - All files verified in tar.gz archive — ready for Hostinger VPS deployment
+
+---
+Task ID: 7
+Agent: Main Agent
+Task: Apply uploaded logo and rebrand from "Urban Kitchens" to "Urban Kitchen"
+
+Work Log:
+- Analyzed uploaded logo image using VLM: "URBAN" in black over "KITCHEN" in white on green bar — clean modern design
+- Copied logo.jpg to /public/ directory (replacing old logo.svg)
+- Updated Navbar.tsx: replaced Flame icon with Image component using /logo.jpg, updated brand text to "Urban Kitchen"
+- Updated Footer.tsx: replaced Flame icon with Image component, updated brand text to "Urban Kitchen"
+- Updated AdminDashboard.tsx: added Image import, replaced "UK" badge with actual logo image in both desktop and mobile sidebars, updated text references
+- Updated CheckoutPage.tsx: changed payment dialog text to "Urban Kitchen"
+- Updated HomePage.tsx: changed "Why Choose Urban Kitchens" and testimonial text
+- Updated AmcPage.tsx: changed service description text
+- Updated AboutPage.tsx: changed all 3 occurrences of "Urban Kitchens" to "Urban Kitchen"
+- Updated layout.tsx: changed favicon from /logo.svg to /logo.jpg, updated metadata title, keywords, authors, openGraph
+- Updated email.ts: replaced all "Urban Kitchens" with "Urban Kitchen" in email templates and sender names
+- Updated api/route.ts: changed service name to "Urban Kitchen API"
+- Updated api/seed/route.ts: changed company_name setting value
+- Removed old /public/logo.svg file
+- Verified dev server still running (200 OK) and logo.jpg accessible at /logo.jpg
+- Verified zero lint errors in src/ code
+
+Stage Summary:
+- Logo image (logo.jpg) is now used across all components: Navbar, Footer, AdminDashboard, favicon
+- Brand name consistently changed from "Urban Kitchens" to "Urban Kitchen" throughout the entire codebase
+- All 0 remaining "Urban Kitchens" references in src/ directory
+- Old logo.svg removed from public folder

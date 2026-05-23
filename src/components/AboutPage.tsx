@@ -89,7 +89,7 @@ export default function AboutPage() {
               custom={2}
               className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed"
             >
-              Urban Kitchens Manufacturing & Solutions has been at the forefront of commercial 
+              Urban Kitchen Manufacturing & Solutions has been at the forefront of commercial 
               kitchen equipment innovation, delivering precision-engineered products to India&apos;s 
               hospitality industry.
             </motion.p>
@@ -122,7 +122,7 @@ export default function AboutPage() {
               </h2>
               <div className="w-12 h-0.5 bg-[#59ff00] mb-6" />
               <p className="text-gray-400 leading-relaxed mb-4">
-                Founded in 2009, Urban Kitchens began with a simple vision — to provide Indian 
+                Founded in 2009, Urban Kitchen began with a simple vision — to provide Indian 
                 commercial kitchens with world-class stainless steel equipment that matches 
                 international standards at competitive prices.
               </p>
@@ -206,7 +206,7 @@ export default function AboutPage() {
               Our <span className="text-[#59ff00]">Leadership</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-gray-500 max-w-xl mx-auto">
-              Meet the people who drive Urban Kitchens forward
+              Meet the people who drive Urban Kitchen forward
             </motion.p>
           </motion.div>
 
