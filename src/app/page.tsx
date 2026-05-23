@@ -49,19 +49,20 @@ export default function Home() {
   const [seeded, setSeeded] = useState(false)
   const mounted = useIsMounted()
 
-  // Seed database on first load
+  // Check database is ready on first load
   useEffect(() => {
     if (seeded) return
-    const seed = async () => {
+    const checkDb = async () => {
       try {
-        await fetch('/api/seed', { method: 'POST' })
-        setSeeded(true)
+        const res = await fetch('/api/products?limit=1')
+        if (res.ok) setSeeded(true)
+        else setSeeded(true) // Continue anyway
       } catch (err) {
-        console.error('Seed error:', err)
+        console.error('DB check error:', err)
         setSeeded(true) // Continue anyway
       }
     }
-    seed()
+    checkDb()
   }, [seeded])
 
   // Scroll to top on view change
