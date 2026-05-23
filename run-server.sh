@@ -1,15 +1,25 @@
 #!/bin/bash
-# Persistent server wrapper for sandbox environment
-# Restarts the server automatically when it crashes
-
 cd /home/z/my-project
+export NODE_OPTIONS="--max-old-space-size=2048"
 
-while true; do
-  echo "[$(date '+%H:%M:%S')] Starting production server..." >> /home/z/my-project/server-wrapper.log
-  
-  NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 node .next/standalone/server.js >> /home/z/my-project/server-wrapper.log 2>&1
-  EXIT=$?
-  
-  echo "[$(date '+%H:%M:%S')] Server exited with code $EXIT" >> /home/z/my-project/server-wrapper.log
-  sleep 3
+# Warm up - hit all endpoints to pre-load modules
+node .next/standalone/server.js -p 3000 &
+PID=$!
+sleep 3
+
+# Pre-warm the server by hitting all key routes
+echo "Warming up server..."
+wget -q -O /dev/null http://localhost:3000/ 2>/dev/null
+wget -q -O /dev/null http://localhost:3000/api/products?limit=1 2>/dev/null
+wget -q -O /dev/null http://localhost:3000/api/categories 2>/dev/null
+wget -q -O /dev/null http://localhost:3000/api/amc 2>/dev/null
+wget -q -O /dev/null http://localhost:3000/api/seed 2>/dev/null
+
+echo "Server warmed up and running on port 3000"
+echo "PID: $PID"
+
+# Keep the script running to keep the server alive
+while kill -0 $PID 2>/dev/null; do
+  sleep 10
 done
+echo "Server exited"
