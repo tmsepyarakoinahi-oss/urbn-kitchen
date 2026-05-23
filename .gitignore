@@ -19,6 +19,7 @@ node_modules
 
 # production
 /build
+/dist/
 
 # misc
 .DS_Store
@@ -36,7 +37,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -48,7 +48,17 @@ dev.log
 dev.out.log
 test
 prompt
-
 server.log
+
 # Skills directory
 /skills/
+
+# Z.ai internals
+/.zscripts/
+/agent-ctx/
+/upload/
+/worklog.md
+/prisma/postinstall.js
+
+# Database (not for Vercel)
+/db/
