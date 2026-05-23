@@ -303,8 +303,8 @@ export default function OrderSuccessPage() {
               <div className="absolute top-5 left-[10%] w-0 h-0.5 bg-[#59ff00] z-0" style={{ width: '0%' }} />
 
               {TIMELINE_STEPS.map((step, i) => {
-                const isActive = i === 0 // "Order Confirmed" is the current active step
-                const isCompleted = i < 0 // None completed yet (just placed)
+                const isCompleted = i === 0 // "Order Confirmed" is completed
+                const isActive = i === 1   // "Processing" is the current active step
                 const StepIcon = step.icon
 
                 return (

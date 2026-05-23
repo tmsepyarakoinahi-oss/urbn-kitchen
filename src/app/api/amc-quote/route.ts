@@ -94,11 +94,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Email sending will be handled by admin when SMTP is configured
-    // To enable emails, set SMTP_HOST, SMTP_USER, SMTP_PASS in .env
-    // The quote is saved to the database and can be viewed in the admin panel
-    console.log(`[AMC Quote] New quote saved: #AMC-${quote.id.slice(-6).toUpperCase()} for ${name} (${plan} plan)`)
-
     return NextResponse.json({
       status: true,
       message: 'AMC quote request submitted successfully! Our team will contact you within 24 hours.',

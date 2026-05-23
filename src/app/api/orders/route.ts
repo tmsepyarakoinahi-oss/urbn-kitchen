@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     // Generate order number
     const orderCount = await db.order.count()
-    const orderNumber = `ORD-2024-${String(1001 + orderCount)}`
+    const orderNumber = `ORD-${new Date().getFullYear()}-${String(1001 + orderCount)}`
 
     const order = await db.order.create({
       data: {

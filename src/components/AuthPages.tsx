@@ -15,7 +15,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Separator } from '@/components/ui/separator'
 import { useAppStore } from '@/lib/store'
 import { toast } from 'sonner'
 
@@ -129,16 +128,6 @@ function LoginForm() {
           </>
         )}
       </Button>
-
-      {/* Demo credentials */}
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 mt-2">
-        <p className="text-gray-500 text-xs mb-1.5">Demo Credentials:</p>
-        <div className="flex flex-col gap-1 text-xs">
-          <span className="text-gray-400"><strong className="text-gray-300">Admin:</strong> admin@urbankitchens.com / admin123</span>
-          <span className="text-gray-400"><strong className="text-gray-300">Customer:</strong> anand@restaurant.com / customer123</span>
-          <span className="text-gray-400"><strong className="text-gray-300">Employee:</strong> suresh@urbankitchens.com / employee123</span>
-        </div>
-      </div>
 
       <p className="text-center text-gray-500 text-sm mt-2">
         Don&apos;t have an account?{' '}

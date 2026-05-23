@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     // Generate quotation number
     const count = await db.quotation.count()
-    const quotationNumber = `QUO-2024-${String(count + 1).padStart(3, '0')}`
+    const quotationNumber = `QUO-${new Date().getFullYear()}-${String(count + 1).padStart(3, '0')}`
 
     const quotation = await db.quotation.create({
       data: {

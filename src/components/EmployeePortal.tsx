@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Progress } from '@/components/ui/progress'
@@ -417,11 +417,17 @@ export default function EmployeePortal() {
                   </div>
                   {/* Leave Balance */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                    {[
-                      { type: 'Casual', total: 12, used: 1, color: 'bg-blue-500' },
-                      { type: 'Sick', total: 10, used: 1, color: 'bg-red-500' },
-                      { type: 'Earned', total: 15, used: 0, color: 'bg-green-500' },
-                    ].map(leave => (
+                    {(() => {
+                      const leaves = employee?.leaves || []
+                      const casualUsed = leaves.filter((l: any) => l.type === 'casual' && l.status === 'approved').length
+                      const sickUsed = leaves.filter((l: any) => l.type === 'sick' && l.status === 'approved').length
+                      const earnedUsed = leaves.filter((l: any) => l.type === 'earned' && l.status === 'approved').length
+                      return [
+                        { type: 'Casual', total: 12, used: casualUsed, color: 'bg-blue-500' },
+                        { type: 'Sick', total: 10, used: sickUsed, color: 'bg-red-500' },
+                        { type: 'Earned', total: 15, used: earnedUsed, color: 'bg-green-500' },
+                      ]
+                    })().map(leave => (
                       <div key={leave.type} className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-5">
                         <div className="flex items-center justify-between mb-3">
                           <span className="text-gray-400 text-sm">{leave.type} Leave</span>

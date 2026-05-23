@@ -40,8 +40,7 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
   const transporter = await createTransporter()
 
   if (!transporter) {
-    console.log('[Email] SMTP not configured. Quote saved to database only.')
-    console.log('[Email] Configure SMTP_HOST, SMTP_USER, SMTP_PASS in .env to enable email sending.')
+    console.warn('[Email] SMTP not configured. Quote saved to database only. Configure SMTP_HOST, SMTP_USER, SMTP_PASS in .env to enable email sending.')
     return { sent: false, error: 'SMTP not configured' }
   }
 
@@ -139,7 +138,6 @@ export async function sendAmcQuoteEmail(data: AmcQuoteEmailData): Promise<{ sent
       html: htmlBody,
     })
 
-    console.log('[Email] AMC quote email sent:', info.messageId)
     return { sent: true }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
@@ -196,7 +194,6 @@ export async function sendAmcQuoteConfirmation(data: AmcQuoteEmailData): Promise
       html: htmlBody,
     })
 
-    console.log('[Email] Customer confirmation sent:', info.messageId)
     return { sent: true }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
