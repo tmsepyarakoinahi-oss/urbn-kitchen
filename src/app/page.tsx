@@ -39,7 +39,8 @@ export default function Home() {
     }
   }, [currentView, mounted])
 
-  const showFooter = !['admin', 'employee-portal'].includes(currentView)
+  const hideLayout = ['admin', 'employee-portal'].includes(currentView)
+  const showFooter = !hideLayout
 
   if (!mounted) {
     return (
@@ -77,8 +78,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0b0b0b] text-white flex flex-col">
-      <Navbar />
-      <main className="flex-1">
+      {!hideLayout && <Navbar />}
+      <main className={hideLayout ? 'flex-1' : 'flex-1 pt-16 md:pt-18'}>
         {renderView()}
       </main>
       {showFooter && <Footer />}
