@@ -125,6 +125,9 @@ const statusBadgeCls = (s: string) => {
     terminated: 'bg-red-500/20 text-red-400 border-red-500/30',
     draft: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
     archived: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    sent: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    accepted: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+    rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
   }
   return m[s] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
 }
@@ -251,8 +254,48 @@ export default function AdminDashboard() {
     name: '', company: '', phone: '', email: '', city: '', requirement: '', message: '', source: 'website', assignedTo: '',
   })
   const [quotationAmount, setQuotationAmount] = useState('')
-  const [quotationItems, setQuotationItems] = useState('')
   const [quotationValidUntil, setQuotationValidUntil] = useState('')
+  const [quotationItems, setQuotationItems] = useState<Array<{desc: string, hsn: string, qty: string, unit: string, rate: string, discount: string, gstPercent: string}>>(
+    [{ desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }]
+  )
+  const [quotationCustomerName, setQuotationCustomerName] = useState('')
+  const [quotationCustomerCompany, setQuotationCustomerCompany] = useState('')
+  const [quotationCustomerEmail, setQuotationCustomerEmail] = useState('')
+  const [quotationCustomerPhone, setQuotationCustomerPhone] = useState('')
+  const [quotationCustomerAddress, setQuotationCustomerAddress] = useState('')
+  const [quotationCustomerGst, setQuotationCustomerGst] = useState('')
+  const [quotationNotes, setQuotationNotes] = useState('')
+  const [quotationDeliveryPeriod, setQuotationDeliveryPeriod] = useState('2-3 weeks')
+  const [quotationInstallation, setQuotationInstallation] = useState('Included')
+  const [quotationWarranty, setQuotationWarranty] = useState('12 months against manufacturing defects')
+  const [quotationDetailDialog, setQuotationDetailDialog] = useState(false)
+  const [selectedQuotation, setSelectedQuotation] = useState<any>(null)
+  const [sendingQuotation, setSendingQuotation] = useState(false)
+
+  const computeQuotationTotals = () => {
+    let subtotal = 0
+    let totalDiscount = 0
+    let totalGst = 0
+    quotationItems.forEach(item => {
+      const qty = parseFloat(item.qty) || 0
+      const rate = parseFloat(item.rate) || 0
+      const discount = parseFloat(item.discount) || 0
+      const gstPercent = parseFloat(item.gstPercent) || 0
+      const lineTotal = qty * rate
+      const discAmt = lineTotal * discount / 100
+      const afterDisc = lineTotal - discAmt
+      const gstAmt = afterDisc * gstPercent / 100
+      subtotal += lineTotal
+      totalDiscount += discAmt
+      totalGst += gstAmt
+    })
+    const afterDiscount = subtotal - totalDiscount
+    const cgst = totalGst / 2
+    const sgst = totalGst / 2
+    const grandTotal = afterDiscount + totalGst
+    return { subtotal, totalDiscount, afterDiscount, totalGst, cgst, sgst, grandTotal }
+  }
+
   const [employeeForm, setEmployeeForm] = useState({
     name: '', email: '', phone: '', password: '', department: '', designation: '', salary: '', joiningDate: '',
   })
@@ -555,19 +598,68 @@ export default function AdminDashboard() {
 
   const handleSaveQuotation = async () => {
     try {
+      const totals = computeQuotationTotals()
+      const itemsWithAmount = quotationItems.map(item => {
+        const qty = parseFloat(item.qty) || 0
+        const rate = parseFloat(item.rate) || 0
+        const discount = parseFloat(item.discount) || 0
+        const gstPercent = parseFloat(item.gstPercent) || 0
+        const lineTotal = qty * rate
+        const discAmt = lineTotal * discount / 100
+        const afterDisc = lineTotal - discAmt
+        const gstAmt = afterDisc * gstPercent / 100
+        return { ...item, amount: afterDisc + gstAmt }
+      })
       const res = await fetch('/api/quotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: selectedLead?.id,
-          amount: quotationAmount,
-          items: quotationItems ? JSON.stringify([{ desc: quotationItems }]) : null,
+          customerName: quotationCustomerName || selectedLead?.name || '',
+          customerCompany: quotationCustomerCompany || selectedLead?.company || '',
+          customerEmail: quotationCustomerEmail || selectedLead?.email || '',
+          customerPhone: quotationCustomerPhone || selectedLead?.phone || '',
+          customerAddress: quotationCustomerAddress || (selectedLead?.city ? `${selectedLead.city}, India` : ''),
+          customerGst: quotationCustomerGst,
+          amount: totals.grandTotal,
+          subtotal: totals.subtotal,
+          discountAmount: totals.totalDiscount,
+          cgstAmount: totals.cgst,
+          sgstAmount: totals.sgst,
+          totalGst: totals.totalGst,
+          items: JSON.stringify(itemsWithAmount),
+          notes: quotationNotes,
+          terms: JSON.stringify([
+            'Prices are exclusive of freight & insurance charges unless stated otherwise.',
+            'GST @18% applicable as per government norms.',
+            '50% advance payment with order, balance before dispatch.',
+            'Delivery subject to confirmation at the time of order.',
+            'Goods once sold will not be taken back.',
+            'Subject to Delhi jurisdiction.',
+            'This quotation is valid for 30 days from the date of issue.',
+          ]),
+          bankDetails: JSON.stringify({
+            bankName: 'HDFC Bank',
+            accountName: 'Urban Kitchen Manufacturing & Solutions',
+            accountNo: '50100XXXXX1234',
+            ifsc: 'HDFC0001234',
+            branch: 'Sector 12, Industrial Area, New Delhi',
+          }),
           validUntil: quotationValidUntil || null,
+          deliveryPeriod: quotationDeliveryPeriod,
+          installation: quotationInstallation,
+          warranty: quotationWarranty,
         }),
       })
       const json = await res.json()
-      if (json.status) { setQuotationDialog(false); doFetchLeads(); toast.success('Quotation created') }
-      else { toast.error(json.message || 'Failed to create quotation') }
+      if (json.status) {
+        setQuotationDialog(false)
+        doFetchLeads()
+        if (adminTab === 'quotations') fetch('/api/quotations?limit=50').then(r => r.json()).then(j => { if (j.status) setQuotationList(j.data.quotations || j.data || []) }).catch(console.error)
+        toast.success('Quotation created successfully')
+      } else {
+        toast.error(json.message || 'Failed to create quotation')
+      }
     } catch (e) { console.error(e); toast.error('Failed to create quotation') }
   }
 
@@ -686,6 +778,24 @@ export default function AdminDashboard() {
 
   const openLeadDetail = (lead: any) => {
     fetch(`/api/leads/${lead.id}`).then(r => r.json()).then(j => { if (j.status) { setSelectedLead(j.data); setLeadDetailDialog(true) } }).catch(console.error)
+  }
+
+  const openNewQuotation = () => {
+    setSelectedLead(null)
+    setQuotationCustomerName('')
+    setQuotationCustomerCompany('')
+    setQuotationCustomerEmail('')
+    setQuotationCustomerPhone('')
+    setQuotationCustomerAddress('')
+    setQuotationCustomerGst('')
+    setQuotationAmount('')
+    setQuotationItems([{ desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }])
+    setQuotationValidUntil('')
+    setQuotationNotes('')
+    setQuotationDeliveryPeriod('2-3 weeks')
+    setQuotationInstallation('Included')
+    setQuotationWarranty('12 months against manufacturing defects')
+    setQuotationDialog(true)
   }
 
   const openOrderDetail = (order: any) => {
@@ -1236,32 +1346,230 @@ export default function AdminDashboard() {
   )
 
   // ─── Quotations Tab ─────────────────────────────────────
-  const renderQuotationsTab = () => (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-      <h2 className="text-white text-xl font-bold">Quotations</h2>
-      <Card className="bg-[#181818] border-[#2a2a2a]">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Quotation #</TableHead><TableHead className="text-gray-400">Lead</TableHead><TableHead className="text-gray-400">Amount</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Valid Until</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {quotationList.map((q: any) => (
-                  <TableRow key={q.id} className="border-[#2a2a2a] hover:bg-white/5">
-                    <TableCell className="text-white text-sm font-mono">{q.quotationNumber}</TableCell>
-                    <TableCell className="text-gray-300 text-sm">{q.lead?.name || '-'}</TableCell>
-                    <TableCell className="text-[#59ff00] text-sm font-semibold">{fmt(q.amount)}</TableCell>
-                    <TableCell><Badge className={`text-[10px] ${statusBadgeCls(q.status)}`}>{q.status}</Badge></TableCell>
-                    <TableCell className="text-gray-400 text-sm">{q.validUntil ? fmtDate(q.validUntil) : '-'}</TableCell>
+  const renderQuotationsTab = () => {
+    const openQuotationDetail = (q: any) => {
+      fetch(`/api/quotations/${q.id}`).then(r => r.json()).then(j => {
+        if (j.status) { setSelectedQuotation(j.data); setQuotationDetailDialog(true) }
+      }).catch(console.error)
+    }
+
+    const handleQuotationStatusChange = async (id: string, status: string) => {
+      try {
+        await fetch(`/api/quotations/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
+        fetch('/api/quotations?limit=50').then(r => r.json()).then(j => { if (j.status) setQuotationList(j.data.quotations || j.data || []) }).catch(console.error)
+        toast.success(`Quotation ${status}`)
+      } catch (e) { toast.error('Failed to update') }
+    }
+
+    const handleDeleteQuotation = async (id: string) => {
+      if (!confirm('Delete this quotation?')) return
+      try {
+        await fetch(`/api/quotations/${id}`, { method: 'DELETE' })
+        fetch('/api/quotations?limit=50').then(r => r.json()).then(j => { if (j.status) setQuotationList(j.data.quotations || j.data || []) }).catch(console.error)
+        toast.success('Quotation deleted')
+      } catch (e) { toast.error('Failed to delete') }
+    }
+
+    const handleGeneratePdf = (id: string) => {
+      window.open(`/api/quotations/generate-pdf?id=${id}`, '_blank')
+    }
+
+    const handleSendQuotation = async (id: string, method: 'email' | 'whatsapp' | 'both') => {
+      setSendingQuotation(true)
+      try {
+        const res = await fetch('/api/quotations/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quotationId: id, method }),
+        })
+        const json = await res.json()
+        if (json.status) {
+          if (method === 'whatsapp' && json.data?.whatsappUrl) {
+            window.open(json.data.whatsappUrl, '_blank')
+          }
+          fetch('/api/quotations?limit=50').then(r => r.json()).then(j => { if (j.status) setQuotationList(j.data.quotations || j.data || []) }).catch(console.error)
+          if (selectedQuotation?.id === id) {
+            fetch(`/api/quotations/${id}`).then(r => r.json()).then(j => { if (j.status) setSelectedQuotation(j.data) }).catch(console.error)
+          }
+          toast.success(`Quotation sent via ${method === 'both' ? 'email & WhatsApp' : method}`)
+        } else {
+          toast.error(json.message || `Failed to send via ${method}`)
+        }
+      } catch (e) {
+        toast.error('Failed to send quotation')
+      } finally {
+        setSendingQuotation(false)
+      }
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-white text-xl font-bold">Quotations</h2>
+          <Button onClick={openNewQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
+            <Plus className="w-4 h-4 mr-2" /> New Quotation
+          </Button>
+        </div>
+        <Card className="bg-[#181818] border-[#2a2a2a]">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-[#2a2a2a] hover:bg-transparent">
+                    <TableHead className="text-gray-400">Quotation #</TableHead>
+                    <TableHead className="text-gray-400">Customer</TableHead>
+                    <TableHead className="text-gray-400">Amount</TableHead>
+                    <TableHead className="text-gray-400">Status</TableHead>
+                    <TableHead className="text-gray-400">Valid Until</TableHead>
+                    <TableHead className="text-gray-400">Sent</TableHead>
+                    <TableHead className="text-gray-400">Actions</TableHead>
                   </TableRow>
-                ))}
-                {quotationList.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-gray-500 py-8">No quotations found</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  )
+                </TableHeader>
+                <TableBody>
+                  {quotationList.map((q: any) => (
+                    <TableRow key={q.id} className="border-[#2a2a2a] hover:bg-white/5">
+                      <TableCell className="text-white text-sm font-mono cursor-pointer hover:text-[#59ff00]" onClick={() => openQuotationDetail(q)}>{q.quotationNumber}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">
+                        <div>{q.customerName || q.lead?.name || '-'}</div>
+                        {q.customerCompany && <div className="text-gray-500 text-xs">{q.customerCompany}</div>}
+                      </TableCell>
+                      <TableCell className="text-[#59ff00] text-sm font-semibold">{fmt(q.amount)}</TableCell>
+                      <TableCell>
+                        <Select value={q.status} onValueChange={(v) => handleQuotationStatusChange(q.id, v)}>
+                          <SelectTrigger className="h-7 w-28 text-xs bg-transparent border-0 p-0">
+                            <Badge className={`text-[10px] ${statusBadgeCls(q.status)}`}>{q.status}</Badge>
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="sent">Sent</SelectItem>
+                            <SelectItem value="accepted">Accepted</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                            <SelectItem value="expired">Expired</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-gray-400 text-sm">{q.validUntil ? fmtDate(q.validUntil) : '-'}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          {q.emailSent && <Badge className="text-[9px] bg-blue-500/20 text-blue-400 border-blue-500/30">Email</Badge>}
+                          {q.whatsappSent && <Badge className="text-[9px] bg-green-500/20 text-green-400 border-green-500/30">WhatsApp</Badge>}
+                          {!q.emailSent && !q.whatsappSent && <span className="text-gray-600 text-xs">—</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openQuotationDetail(q)} className="text-gray-400 hover:text-[#59ff00] h-7 w-7 p-0"><Eye className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleGeneratePdf(q.id)} className="text-gray-400 hover:text-blue-400 h-7 w-7 p-0"><FileText className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleSendQuotation(q.id, 'email')} className="text-gray-400 hover:text-purple-400 h-7 w-7 p-0" title="Send via Email"><Mail className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleSendQuotation(q.id, 'whatsapp')} className="text-gray-400 hover:text-green-400 h-7 w-7 p-0" title="Send via WhatsApp"><MessageSquare className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteQuotation(q.id)} className="text-gray-400 hover:text-red-400 h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {quotationList.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No quotations found. Create one from a lead or click &quot;New Quotation&quot;.</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quotation Detail Dialog */}
+        <Dialog open={quotationDetailDialog} onOpenChange={setQuotationDetailDialog}>
+          <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-3">
+                <span>Quotation {selectedQuotation?.quotationNumber}</span>
+                <Badge className={`text-xs ${statusBadgeCls(selectedQuotation?.status)}`}>{selectedQuotation?.status}</Badge>
+              </DialogTitle>
+            </DialogHeader>
+            {selectedQuotation && (
+              <div className="space-y-4">
+                {/* Customer Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-[#0b0b0b] border border-[#2a2a2a] rounded-lg p-3">
+                    <p className="text-gray-500 text-xs mb-1">Bill To</p>
+                    <p className="text-white font-semibold">{selectedQuotation.customerName}</p>
+                    {selectedQuotation.customerCompany && <p className="text-gray-400 text-sm">{selectedQuotation.customerCompany}</p>}
+                    {selectedQuotation.customerAddress && <p className="text-gray-500 text-sm">{selectedQuotation.customerAddress}</p>}
+                    {selectedQuotation.customerGst && <p className="text-gray-500 text-xs mt-1">GSTIN: {selectedQuotation.customerGst}</p>}
+                  </div>
+                  <div className="bg-[#0b0b0b] border border-[#2a2a2a] rounded-lg p-3">
+                    <p className="text-gray-500 text-xs mb-1">Quotation Details</p>
+                    <p className="text-gray-300 text-sm">Date: {fmtDate(selectedQuotation.createdAt)}</p>
+                    {selectedQuotation.validUntil && <p className="text-gray-300 text-sm">Valid Until: {fmtDate(selectedQuotation.validUntil)}</p>}
+                    {selectedQuotation.deliveryPeriod && <p className="text-gray-300 text-sm">Delivery: {selectedQuotation.deliveryPeriod}</p>}
+                    {selectedQuotation.warranty && <p className="text-gray-300 text-sm">Warranty: {selectedQuotation.warranty}</p>}
+                  </div>
+                </div>
+
+                {/* Items */}
+                {selectedQuotation.items && (
+                  <div className="bg-[#0b0b0b] border border-[#2a2a2a] rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent">
+                        <TableHead className="text-gray-400 text-xs">#</TableHead>
+                        <TableHead className="text-gray-400 text-xs">Description</TableHead>
+                        <TableHead className="text-gray-400 text-xs text-right">Qty</TableHead>
+                        <TableHead className="text-gray-400 text-xs text-right">Rate</TableHead>
+                        <TableHead className="text-gray-400 text-xs text-right">GST%</TableHead>
+                        <TableHead className="text-gray-400 text-xs text-right">Amount</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {(JSON.parse(selectedQuotation.items || '[]')).map((item: any, i: number) => (
+                          <TableRow key={i} className="border-[#2a2a2a] hover:bg-transparent">
+                            <TableCell className="text-gray-400 text-xs">{i + 1}</TableCell>
+                            <TableCell className="text-white text-xs">{item.desc}{item.hsn ? <span className="text-gray-500 ml-1">({item.hsn})</span> : ''}</TableCell>
+                            <TableCell className="text-gray-300 text-xs text-right">{item.qty} {item.unit || 'Nos'}</TableCell>
+                            <TableCell className="text-gray-300 text-xs text-right">{fmt(item.rate || 0)}</TableCell>
+                            <TableCell className="text-gray-400 text-xs text-right">{item.gstPercent || 0}%</TableCell>
+                            <TableCell className="text-[#59ff00] text-xs text-right font-semibold">{fmt(item.amount || 0)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Totals */}
+                <div className="flex justify-end">
+                  <div className="w-64 space-y-1.5">
+                    <div className="flex justify-between text-sm"><span className="text-gray-400">Subtotal</span><span className="text-gray-300">{fmt(selectedQuotation.subtotal || 0)}</span></div>
+                    {selectedQuotation.discountAmount > 0 && <div className="flex justify-between text-sm"><span className="text-gray-400">Discount</span><span className="text-red-400">-{fmt(selectedQuotation.discountAmount)}</span></div>}
+                    <div className="flex justify-between text-sm"><span className="text-gray-400">CGST</span><span className="text-gray-300">{fmt(selectedQuotation.cgstAmount || 0)}</span></div>
+                    <div className="flex justify-between text-sm"><span className="text-gray-400">SGST</span><span className="text-gray-300">{fmt(selectedQuotation.sgstAmount || 0)}</span></div>
+                    <div className="flex justify-between text-sm pt-2 border-t border-[#2a2a2a]"><span className="text-white font-bold">Grand Total</span><span className="text-[#59ff00] font-bold text-lg">{fmt(selectedQuotation.amount)}</span></div>
+                  </div>
+                </div>
+
+                {/* Send tracking */}
+                <div className="flex items-center gap-4 text-xs">
+                  {selectedQuotation.emailSent && <span className="text-blue-400">📧 Email sent {selectedQuotation.emailSentAt ? fmtDate(selectedQuotation.emailSentAt) : ''}</span>}
+                  {selectedQuotation.whatsappSent && <span className="text-green-400">💬 WhatsApp sent {selectedQuotation.whatsappSentAt ? fmtDate(selectedQuotation.whatsappSentAt) : ''}</span>}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-2 border-t border-[#2a2a2a]">
+                  <Button onClick={() => handleGeneratePdf(selectedQuotation.id)} variant="outline" className="border-[#2a2a2a] text-gray-300 hover:text-white">
+                    <FileText className="w-4 h-4 mr-2" /> Download PDF
+                  </Button>
+                  <Button onClick={() => handleSendQuotation(selectedQuotation.id, 'email')} className="bg-blue-600 text-white hover:bg-blue-700" disabled={sendingQuotation}>
+                    <Mail className="w-4 h-4 mr-2" /> Send Email
+                  </Button>
+                  <Button onClick={() => handleSendQuotation(selectedQuotation.id, 'whatsapp')} className="bg-green-600 text-white hover:bg-green-700" disabled={sendingQuotation}>
+                    <MessageSquare className="w-4 h-4 mr-2" /> WhatsApp
+                  </Button>
+                  <Button onClick={() => handleSendQuotation(selectedQuotation.id, 'both')} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90" disabled={sendingQuotation}>
+                    Send Both
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </motion.div>
+    )
+  }
 
   // ─── Customers Tab (User Management) ────────────────────
   const renderCustomersTab = () => {
@@ -2431,7 +2739,22 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               )}
-              <Button onClick={() => { setQuotationAmount(''); setQuotationItems(''); setQuotationValidUntil(''); setQuotationDialog(true) }} className="w-full bg-[#59ff00]/10 text-[#59ff00] hover:bg-[#59ff00]/20 border border-[#59ff00]/30 font-semibold">
+              <Button onClick={() => {
+                setQuotationCustomerName(selectedLead?.name || '')
+                setQuotationCustomerCompany(selectedLead?.company || '')
+                setQuotationCustomerEmail(selectedLead?.email || '')
+                setQuotationCustomerPhone(selectedLead?.phone || '')
+                setQuotationCustomerAddress(selectedLead?.city ? `${selectedLead.city}, India` : '')
+                setQuotationCustomerGst('')
+                setQuotationAmount('')
+                setQuotationItems([{ desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }])
+                setQuotationValidUntil('')
+                setQuotationNotes('')
+                setQuotationDeliveryPeriod('2-3 weeks')
+                setQuotationInstallation('Included')
+                setQuotationWarranty('12 months against manufacturing defects')
+                setQuotationDialog(true)
+              }} className="w-full bg-[#59ff00]/10 text-[#59ff00] hover:bg-[#59ff00]/20 border border-[#59ff00]/30 font-semibold">
                 <FileText className="w-4 h-4 mr-2" /> Create Quotation
               </Button>
             </div>
@@ -2441,19 +2764,91 @@ export default function AdminDashboard() {
 
       {/* Quotation Dialog */}
       <Dialog open={quotationDialog} onOpenChange={setQuotationDialog}>
-        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-md">
+        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">Create Quotation</DialogTitle>
-            <DialogDescription className="text-gray-400">Create a quotation for {selectedLead?.name}</DialogDescription>
+            <DialogDescription className="text-gray-400">{selectedLead ? `For ${selectedLead.name}` : 'Fill in the details below'}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Amount (₹) *</Label><Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={quotationAmount} onChange={(e) => setQuotationAmount(e.target.value)} /></div>
-            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Items Description</Label><Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={3} value={quotationItems} onChange={(e) => setQuotationItems(e.target.value)} placeholder="Describe the items/services..." /></div>
-            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Valid Until</Label><Input type="date" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={quotationValidUntil} onChange={(e) => setQuotationValidUntil(e.target.value)} /></div>
+          <div className="space-y-4">
+            {/* Customer Details */}
+            <div>
+              <h3 className="text-[#59ff00] text-sm font-semibold mb-2">Customer Details</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Name *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationCustomerName} onChange={e => setQuotationCustomerName(e.target.value)} placeholder="Customer name" /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Company</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationCustomerCompany} onChange={e => setQuotationCustomerCompany(e.target.value)} placeholder="Company name" /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Email</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationCustomerEmail} onChange={e => setQuotationCustomerEmail(e.target.value)} placeholder="customer@email.com" /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Phone</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationCustomerPhone} onChange={e => setQuotationCustomerPhone(e.target.value)} placeholder="+91-XXXXXXXXXX" /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Address</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationCustomerAddress} onChange={e => setQuotationCustomerAddress(e.target.value)} placeholder="Full address" /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">GSTIN</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationCustomerGst} onChange={e => setQuotationCustomerGst(e.target.value)} placeholder="GST number" /></div>
+              </div>
+            </div>
+
+            <Separator className="bg-[#2a2a2a]" />
+
+            {/* Line Items */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-[#59ff00] text-sm font-semibold">Line Items</h3>
+                <Button variant="ghost" size="sm" onClick={() => setQuotationItems([...quotationItems, { desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }])} className="text-[#59ff00] hover:bg-[#59ff00]/10 h-7 text-xs">
+                  <Plus className="w-3 h-3 mr-1" /> Add Item
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {quotationItems.map((item, idx) => (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-[#0b0b0b] border border-[#2a2a2a] rounded-lg p-2">
+                    <div className="col-span-4 space-y-0.5"><Label className="text-gray-500 text-[10px]">Description</Label><Input className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.desc} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], desc: e.target.value }; setQuotationItems(n) }} placeholder="Product / Service" /></div>
+                    <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">HSN</Label><Input className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.hsn} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], hsn: e.target.value }; setQuotationItems(n) }} placeholder="8419" /></div>
+                    <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">Qty</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.qty} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], qty: e.target.value }; setQuotationItems(n) }} /></div>
+                    <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">Unit</Label><Input className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.unit} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], unit: e.target.value }; setQuotationItems(n) }} /></div>
+                    <div className="col-span-2 space-y-0.5"><Label className="text-gray-500 text-[10px]">Rate (₹)</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.rate} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], rate: e.target.value }; setQuotationItems(n) }} placeholder="0" /></div>
+                    <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">Disc%</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.discount} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], discount: e.target.value }; setQuotationItems(n) }} /></div>
+                    <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">GST%</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.gstPercent} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], gstPercent: e.target.value }; setQuotationItems(n) }} /></div>
+                    <div className="col-span-1 flex items-center justify-center">
+                      <Button variant="ghost" size="sm" onClick={() => setQuotationItems(quotationItems.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0" disabled={quotationItems.length <= 1}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Totals */}
+              {(() => {
+                const t = computeQuotationTotals()
+                return (
+                  <div className="flex justify-end mt-3">
+                    <div className="w-72 bg-[#0b0b0b] border border-[#2a2a2a] rounded-lg p-3 space-y-1.5">
+                      <div className="flex justify-between text-xs"><span className="text-gray-400">Subtotal</span><span className="text-gray-300">{fmt(t.subtotal)}</span></div>
+                      {t.totalDiscount > 0 && <div className="flex justify-between text-xs"><span className="text-gray-400">Discount</span><span className="text-red-400">-{fmt(t.totalDiscount)}</span></div>}
+                      <div className="flex justify-between text-xs"><span className="text-gray-400">CGST (50%)</span><span className="text-gray-300">{fmt(t.cgst)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-gray-400">SGST (50%)</span><span className="text-gray-300">{fmt(t.sgst)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-gray-400">Total GST</span><span className="text-gray-300">{fmt(t.totalGst)}</span></div>
+                      <div className="flex justify-between text-sm pt-2 border-t border-[#2a2a2a]"><span className="text-white font-bold">Grand Total</span><span className="text-[#59ff00] font-bold">{fmt(t.grandTotal)}</span></div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
+            <Separator className="bg-[#2a2a2a]" />
+
+            {/* Additional Details */}
+            <div>
+              <h3 className="text-[#59ff00] text-sm font-semibold mb-2">Additional Details</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Valid Until</Label><Input type="date" className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationValidUntil} onChange={e => setQuotationValidUntil(e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Delivery Period</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationDeliveryPeriod} onChange={e => setQuotationDeliveryPeriod(e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Installation</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationInstallation} onChange={e => setQuotationInstallation(e.target.value)} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Warranty</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationWarranty} onChange={e => setQuotationWarranty(e.target.value)} /></div>
+                <div className="space-y-1"><Label className="text-gray-400 text-xs">Internal Notes</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white h-9 text-sm" value={quotationNotes} onChange={e => setQuotationNotes(e.target.value)} placeholder="Notes (not shown to customer)" /></div>
+              </div>
+            </div>
           </div>
-          <DialogFooter className="mt-4">
+          <DialogFooter className="mt-4 gap-2">
             <Button variant="ghost" onClick={() => setQuotationDialog(false)} className="text-gray-400 hover:text-white">Cancel</Button>
-            <Button onClick={handleSaveQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">Create Quotation</Button>
+            <Button onClick={handleSaveQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
+              <FileText className="w-4 h-4 mr-2" /> Create Quotation
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

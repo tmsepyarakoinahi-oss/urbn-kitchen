@@ -195,10 +195,45 @@ model Quotation {
   lead            Lead     @relation(fields: [leadId], references: [id])
   quotationNumber String   @unique
   amount          Float
-  items           String?  // JSON array of line items
-  status          String   @default("draft") // draft, sent, accepted, rejected
-  pdf             String?
+
+  // Customer details (snapshot at time of creation)
+  customerName    String
+  customerCompany String?
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  customerGst     String?
+
+  // Line items as JSON: [{desc, hsn, qty, unit, rate, discount, gstPercent, amount}]
+  items           String?
+
+  // Tax breakdown
+  subtotal        Float    @default(0)
+  cgstAmount      Float    @default(0)
+  sgstAmount      Float    @default(0)
+  igstAmount      Float    @default(0)
+  discountAmount  Float    @default(0)
+  totalGst        Float    @default(0)
+
+  // Additional fields
+  notes           String?    // Internal notes
+  terms           String?    // Terms & conditions (JSON array of strings)
+  bankDetails     String?    // Bank details JSON
   validUntil      DateTime?
+  status          String   @default("draft") // draft, sent, accepted, rejected, expired
+
+  // Delivery
+  deliveryPeriod  String?    // e.g. "2-3 weeks"
+  installation    String?    // e.g. "Included" / "Separate quotation"
+  warranty        String?    // e.g. "12 months"
+
+  // Send tracking
+  emailSent       Boolean  @default(false)
+  emailSentAt     DateTime?
+  whatsappSent    Boolean  @default(false)
+  whatsappSentAt  DateTime?
+  pdf             String?    // URL to generated PDF
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
