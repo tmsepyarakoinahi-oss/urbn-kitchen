@@ -19,11 +19,19 @@ export type AppView =
 export type AdminTab =
   | 'dashboard'
   | 'products'
+  | 'categories'
   | 'orders'
   | 'leads'
+  | 'quotations'
+  | 'customers'
   | 'employees'
+  | 'attendance'
+  | 'leaves'
   | 'amc'
+  | 'service'
+  | 'inquiries'
   | 'settings'
+  | 'activity'
 
 export type CustomerTab =
   | 'orders'

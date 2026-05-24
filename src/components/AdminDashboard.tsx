@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Image from 'next/image'
 import {
@@ -8,7 +8,8 @@ import {
   Settings, LogOut, Menu, Search, Plus, Edit, Trash2, Eye,
   ChevronDown, IndianRupee, TrendingUp, AlertTriangle, Clock,
   Phone, Mail, MapPin, Building2, FileText, Wrench, X,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Grid3X3, UserCircle, CalendarDays,
+  MessageSquare, Activity, Upload, ImageIcon, Check
 } from 'lucide-react'
 import { useAppStore, type AdminTab } from '@/lib/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +29,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Switch } from '@/components/ui/switch'
+import { toast } from 'sonner'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -40,11 +44,19 @@ const CHART_COLORS = ['#59ff00', '#00b4d8', '#f77f00', '#d62828', '#7209b7', '#4
 const NAV_ITEMS: { key: AdminTab; label: string; icon: React.ElementType }[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
+  { key: 'categories', label: 'Categories', icon: Grid3X3 },
   { key: 'orders', label: 'Orders', icon: ShoppingCart },
   { key: 'leads', label: 'Leads', icon: Users },
+  { key: 'quotations', label: 'Quotations', icon: FileText },
+  { key: 'customers', label: 'Customers', icon: UserCircle },
   { key: 'employees', label: 'Employees', icon: UserCog },
+  { key: 'attendance', label: 'Attendance', icon: Clock },
+  { key: 'leaves', label: 'Leaves', icon: CalendarDays },
   { key: 'amc', label: 'AMC', icon: Shield },
+  { key: 'service', label: 'Service', icon: Wrench },
+  { key: 'inquiries', label: 'Inquiries', icon: MessageSquare },
   { key: 'settings', label: 'Settings', icon: Settings },
+  { key: 'activity', label: 'Activity', icon: Activity },
 ]
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -110,6 +122,8 @@ const statusBadgeCls = (s: string) => {
     closed: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
     on_leave: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
     terminated: 'bg-red-500/20 text-red-400 border-red-500/30',
+    draft: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    archived: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
   }
   return m[s] || 'bg-gray-500/20 text-gray-400 border-gray-500/30'
 }
@@ -131,29 +145,38 @@ function CustomTooltip({ active, payload, label }: any) {
 
 // ─── Shared types for dialog state ──────────────────────────
 interface ProductForm {
-  name: string; categoryId: string; description: string; price: string;
-  stock: string; status: string; steelGrade: string; capacity: string; dimensions: string;
-}
-interface LeadForm {
-  name: string; company: string; phone: string; email: string;
-  city: string; requirement: string; message: string; source: string; assignedTo: string;
-}
-interface EmployeeForm {
-  name: string; email: string; phone: string; password: string;
-  department: string; designation: string; salary: string; joiningDate: string;
-}
-interface AmcForm {
-  customerId: string; plan: string; startDate: string; endDate: string; amount: string; coverage: string;
-}
-interface ServiceForm {
-  customerId: string; contractId: string; issue: string; priority: string; assignedTechnician: string;
+  name: string
+  categoryId: string
+  description: string
+  shortDescription: string
+  price: string
+  stock: string
+  status: string
+  steelGrade: string
+  capacity: string
+  dimensions: string
+  moq: string
+  leadTime: string
+  featuredImage: string
+  featured: boolean
 }
 
-const emptyProductForm: ProductForm = { name: '', categoryId: '', description: '', price: '', stock: '', status: 'active', steelGrade: '', capacity: '', dimensions: '' }
-const emptyLeadForm: LeadForm = { name: '', company: '', phone: '', email: '', city: '', requirement: '', message: '', source: 'website', assignedTo: '' }
-const emptyEmployeeForm: EmployeeForm = { name: '', email: '', phone: '', password: '', department: '', designation: '', salary: '', joiningDate: '' }
-const emptyAmcForm: AmcForm = { customerId: '', plan: '', startDate: '', endDate: '', amount: '', coverage: '' }
-const emptyServiceForm: ServiceForm = { customerId: '', contractId: '', issue: '', priority: 'medium', assignedTechnician: '' }
+interface CategoryForm {
+  name: string
+  slug: string
+  image: string
+  parentId: string
+}
+
+const emptyProductForm: ProductForm = {
+  name: '', categoryId: '', description: '', shortDescription: '', price: '',
+  stock: '', status: 'active', steelGrade: '', capacity: '', dimensions: '',
+  moq: '', leadTime: '', featuredImage: '', featured: false,
+}
+
+const emptyCategoryForm: CategoryForm = {
+  name: '', slug: '', image: '', parentId: '',
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
@@ -162,6 +185,7 @@ export default function AdminDashboard() {
   const { adminTab, setAdminTab, setUser, setView } = useAppStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // ─── Shared State ───────────────────────────────────────
   const [dashboardData, setDashboardData] = useState<any>(null)
@@ -176,6 +200,10 @@ export default function AdminDashboard() {
   // ─── Dialog States ──────────────────────────────────────
   const [productDialog, setProductDialog] = useState(false)
   const [editProduct, setEditProduct] = useState<any>(null)
+  const [categoryDialog, setCategoryDialog] = useState(false)
+  const [editCategory, setEditCategory] = useState<any>(null)
+  const [deleteCategoryDialog, setDeleteCategoryDialog] = useState(false)
+  const [categoryToDelete, setCategoryToDelete] = useState<any>(null)
   const [orderDialog, setOrderDialog] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [leadDialog, setLeadDialog] = useState(false)
@@ -188,21 +216,50 @@ export default function AdminDashboard() {
 
   // ─── Form States ────────────────────────────────────────
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm)
-  const [leadForm, setLeadForm] = useState<LeadForm>(emptyLeadForm)
+  const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategoryForm)
+  const [leadForm, setLeadForm] = useState({
+    name: '', company: '', phone: '', email: '', city: '', requirement: '', message: '', source: 'website', assignedTo: '',
+  })
   const [quotationAmount, setQuotationAmount] = useState('')
   const [quotationItems, setQuotationItems] = useState('')
   const [quotationValidUntil, setQuotationValidUntil] = useState('')
-  const [employeeForm, setEmployeeForm] = useState<EmployeeForm>(emptyEmployeeForm)
-  const [amcForm, setAmcForm] = useState<AmcForm>(emptyAmcForm)
-  const [serviceForm, setServiceForm] = useState<ServiceForm>(emptyServiceForm)
+  const [employeeForm, setEmployeeForm] = useState({
+    name: '', email: '', phone: '', password: '', department: '', designation: '', salary: '', joiningDate: '',
+  })
+  const [amcForm, setAmcForm] = useState({
+    customerId: '', plan: '', startDate: '', endDate: '', amount: '', coverage: '',
+  })
+  const [serviceForm, setServiceForm] = useState({
+    customerId: '', contractId: '', issue: '', priority: 'medium', assignedTechnician: '',
+  })
   const [settingsData, setSettingsData] = useState({ name: '', email: '', phone: '', address: '', gstNumber: '' })
+  const [uploading, setUploading] = useState(false)
+
+  // ─── Tab-specific States (moved from render functions for hooks rules) ──
+  const [quotationList, setQuotationList] = useState<any[]>([])
+  const [userList, setUserList] = useState<any[]>([])
+  const [roleList, setRoleList] = useState<any[]>([])
+  const [userDialog, setUserDialog] = useState(false)
+  const [editUser, setEditUser] = useState<any>(null)
+  const [userForm, setUserForm] = useState({ name: '', email: '', phone: '', password: '', roleId: '', status: 'active' })
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [empEditDialog, setEmpEditDialog] = useState(false)
+  const [editEmp, setEditEmp] = useState<any>(null)
+  const [empEditForm, setEmpEditForm] = useState({ name: '', email: '', phone: '', password: '', department: '', designation: '', salary: '', joiningDate: '', status: 'active' })
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([])
+  const [leaveList, setLeaveList] = useState<any[]>([])
+  const [leaveFilter, setLeaveFilter] = useState('all')
+  const [inquiryList, setInquiryList] = useState<any[]>([])
+  const [settingsObj, setSettingsObj] = useState<Record<string, string>>({})
+  const [settingsLoading, setSettingsLoading] = useState(false)
+  const [activityList, setActivityList] = useState<any[]>([])
 
   // ─── Filter States ──────────────────────────────────────
   const [orderStatusFilter, setOrderStatusFilter] = useState('all')
   const [productCategoryFilter, setProductCategoryFilter] = useState('all')
   const [searchQueries, setSearchQueries] = useState<Record<string, string>>({})
 
-  // ─── Fetch helpers (non-hook, used by both effects and handlers) ──
+  // ─── Fetch helpers ──────────────────────────────────────
   const doFetchProducts = useCallback(() => {
     const params = new URLSearchParams()
     if (searchQueries.products) params.set('search', searchQueries.products)
@@ -211,6 +268,10 @@ export default function AdminDashboard() {
     params.set('limit', '50')
     fetch(`/api/products?${params}`).then(r => r.json()).then(j => { if (j.status) setProducts(j.data.products) }).catch(console.error)
   }, [searchQueries.products, productCategoryFilter])
+
+  const doFetchCategories = useCallback(() => {
+    fetch('/api/categories').then(r => r.json()).then(j => { if (j.status) setCategories(j.data) }).catch(console.error)
+  }, [])
 
   const doFetchOrders = useCallback(() => {
     const params = new URLSearchParams()
@@ -246,9 +307,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (adminTab === 'products') {
       doFetchProducts()
-      fetch('/api/categories').then(r => r.json()).then(j => { if (j.status) setCategories(j.data) }).catch(console.error)
+      doFetchCategories()
     }
-  }, [adminTab, doFetchProducts])
+  }, [adminTab, doFetchProducts, doFetchCategories])
+
+  useEffect(() => {
+    if (adminTab === 'categories') doFetchCategories()
+  }, [adminTab, doFetchCategories])
 
   useEffect(() => {
     if (adminTab === 'orders') doFetchOrders()
@@ -263,18 +328,100 @@ export default function AdminDashboard() {
   }, [adminTab, doFetchEmployees])
 
   useEffect(() => {
-    if (adminTab === 'amc') doFetchAmc()
+    if (adminTab === 'amc' || adminTab === 'service') doFetchAmc()
   }, [adminTab, doFetchAmc])
+
+  useEffect(() => {
+    if (adminTab === 'quotations') fetch('/api/quotations?limit=50').then(r => r.json()).then(j => { if (j.status) setQuotationList(j.data.quotations || j.data || []) }).catch(console.error)
+  }, [adminTab])
+
+  const doFetchUsers = useCallback(() => {
+    const params = new URLSearchParams()
+    if (roleFilter !== 'all') params.set('role', roleFilter)
+    fetch(`/api/users?${params}`).then(r => r.json()).then(j => { if (j.status) { setUserList(j.data.users || j.data || []); if (j.data.roles) setRoleList(j.data.roles) } }).catch(console.error)
+  }, [roleFilter])
+
+  useEffect(() => { if (adminTab === 'customers') doFetchUsers() }, [adminTab, doFetchUsers])
+
+  useEffect(() => {
+    if (adminTab === 'attendance') fetch('/api/attendance?limit=50').then(r => r.json()).then(j => { if (j.status) setAttendanceRecords(j.data.attendance || j.data || []) }).catch(console.error)
+  }, [adminTab])
+
+  useEffect(() => {
+    if (adminTab === 'leaves') {
+      const params = leaveFilter !== 'all' ? `?status=${leaveFilter}` : ''
+      fetch(`/api/leaves${params}`).then(r => r.json()).then(j => { if (j.status) setLeaveList(j.data.leaves || j.data || []) }).catch(console.error)
+    }
+  }, [adminTab, leaveFilter])
+
+  useEffect(() => {
+    if (adminTab === 'inquiries') fetch('/api/inquiries?limit=50').then(r => r.json()).then(j => { if (j.status) setInquiryList(j.data.inquiries || j.data || []) }).catch(console.error)
+  }, [adminTab])
+
+  useEffect(() => {
+    if (adminTab === 'settings') fetch('/api/settings').then(r => r.json()).then(j => { if (j.status) setSettingsObj(j.data || {}) }).catch(console.error)
+  }, [adminTab])
+
+  useEffect(() => {
+    if (adminTab === 'activity') {
+      Promise.all([fetch('/api/orders?limit=10'), fetch('/api/leads?limit=10')])
+        .then(([oR, lR]) => Promise.all([oR.json(), lR.json()]))
+        .then(([oJ, lJ]) => {
+          const activities: any[] = []
+          if (oJ.status) (oJ.data.orders || []).forEach((o: any) => activities.push({ type: 'order', description: `Order ${o.orderNumber} by ${o.customer?.name}`, status: o.orderStatus, date: o.createdAt }))
+          if (lJ.status) (lJ.data.leads || []).forEach((l: any) => activities.push({ type: 'lead', description: `Lead: ${l.name} (${l.company || 'N/A'})`, status: l.status, date: l.createdAt }))
+          activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          setActivityList(activities)
+        })
+        .catch(console.error)
+    }
+  }, [adminTab])
+
+  // ─── Image Upload Handler ──────────────────────────────
+  const handleImageUpload = async (file: File) => {
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const json = await res.json()
+      if (json.status) {
+        setProductForm(p => ({ ...p, featuredImage: json.data.url }))
+        toast.success('Image uploaded successfully')
+      } else {
+        toast.error(json.message || 'Upload failed')
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to upload image')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   // ─── CRUD Handlers ──────────────────────────────────────
   const handleSaveProduct = async () => {
     try {
       const url = editProduct ? `/api/products/${editProduct.id}` : '/api/products'
       const method = editProduct ? 'PUT' : 'POST'
-      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(productForm) })
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productForm),
+      })
       const json = await res.json()
-      if (json.status) { setProductDialog(false); setEditProduct(null); doFetchProducts() }
-    } catch (e) { console.error(e) }
+      if (json.status) {
+        setProductDialog(false)
+        setEditProduct(null)
+        doFetchProducts()
+        toast.success(editProduct ? 'Product updated' : 'Product created')
+      } else {
+        toast.error(json.message || 'Failed to save product')
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to save product')
+    }
   }
 
   const handleDeleteProduct = async (id: string) => {
@@ -282,22 +429,87 @@ export default function AdminDashboard() {
     try {
       await fetch(`/api/products/${id}`, { method: 'DELETE' })
       doFetchProducts()
-    } catch (e) { console.error(e) }
+      toast.success('Product deleted')
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to delete product')
+    }
+  }
+
+  const handleSaveCategory = async () => {
+    try {
+      if (editCategory) {
+        const res = await fetch(`/api/categories/${editCategory.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(categoryForm),
+        })
+        const json = await res.json()
+        if (json.status) {
+          setCategoryDialog(false)
+          setEditCategory(null)
+          doFetchCategories()
+          toast.success('Category updated')
+        } else {
+          toast.error(json.message || 'Failed to update category')
+        }
+      } else {
+        const res = await fetch('/api/categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(categoryForm),
+        })
+        const json = await res.json()
+        if (json.status) {
+          setCategoryDialog(false)
+          doFetchCategories()
+          toast.success('Category created')
+        } else {
+          toast.error(json.message || 'Failed to create category')
+        }
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to save category')
+    }
+  }
+
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (json.status) {
+        doFetchCategories()
+        toast.success('Category deleted')
+      } else {
+        toast.error(json.message || 'Cannot delete category')
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to delete category')
+    }
+    setDeleteCategoryDialog(false)
+    setCategoryToDelete(null)
   }
 
   const handleUpdateOrderStatus = async (id: string, orderStatus: string) => {
     try {
       await fetch(`/api/orders/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderStatus }) })
       doFetchOrders()
-    } catch (e) { console.error(e) }
+      toast.success('Order status updated')
+    } catch (e) {
+      console.error(e)
+      toast.error('Failed to update order status')
+    }
   }
 
   const handleSaveLead = async () => {
     try {
       const res = await fetch('/api/leads', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(leadForm) })
       const json = await res.json()
-      if (json.status) { setLeadDialog(false); doFetchLeads() }
-    } catch (e) { console.error(e) }
+      if (json.status) { setLeadDialog(false); doFetchLeads(); toast.success('Lead created') }
+      else { toast.error(json.message || 'Failed to create lead') }
+    } catch (e) { console.error(e); toast.error('Failed to create lead') }
   }
 
   const handleUpdateLeadStatus = async (id: string, status: string) => {
@@ -307,7 +519,8 @@ export default function AdminDashboard() {
       if (selectedLead) {
         fetch(`/api/leads/${id}`).then(r => r.json()).then(j => { if (j.status) setSelectedLead(j.data) }).catch(console.error)
       }
-    } catch (e) { console.error(e) }
+      toast.success('Lead status updated')
+    } catch (e) { console.error(e); toast.error('Failed to update lead') }
   }
 
   const handleSaveQuotation = async () => {
@@ -323,39 +536,44 @@ export default function AdminDashboard() {
         }),
       })
       const json = await res.json()
-      if (json.status) { setQuotationDialog(false); doFetchLeads() }
-    } catch (e) { console.error(e) }
+      if (json.status) { setQuotationDialog(false); doFetchLeads(); toast.success('Quotation created') }
+      else { toast.error(json.message || 'Failed to create quotation') }
+    } catch (e) { console.error(e); toast.error('Failed to create quotation') }
   }
 
   const handleSaveEmployee = async () => {
     try {
       const res = await fetch('/api/employees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(employeeForm) })
       const json = await res.json()
-      if (json.status) { setEmployeeDialog(false); doFetchEmployees() }
-    } catch (e) { console.error(e) }
+      if (json.status) { setEmployeeDialog(false); doFetchEmployees(); toast.success('Employee created') }
+      else { toast.error(json.message || 'Failed to create employee') }
+    } catch (e) { console.error(e); toast.error('Failed to create employee') }
   }
 
   const handleSaveAmc = async () => {
     try {
       const res = await fetch('/api/amc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(amcForm) })
       const json = await res.json()
-      if (json.status) { setAmcDialog(false); doFetchAmc() }
-    } catch (e) { console.error(e) }
+      if (json.status) { setAmcDialog(false); doFetchAmc(); toast.success('AMC contract created') }
+      else { toast.error(json.message || 'Failed to create AMC contract') }
+    } catch (e) { console.error(e); toast.error('Failed to create AMC contract') }
   }
 
   const handleSaveServiceRequest = async () => {
     try {
       const res = await fetch('/api/service-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(serviceForm) })
       const json = await res.json()
-      if (json.status) { setServiceDialog(false); doFetchAmc() }
-    } catch (e) { console.error(e) }
+      if (json.status) { setServiceDialog(false); doFetchAmc(); toast.success('Service request created') }
+      else { toast.error(json.message || 'Failed to create service request') }
+    } catch (e) { console.error(e); toast.error('Failed to create service request') }
   }
 
   const handleUpdateServiceRequest = async (id: string, data: any) => {
     try {
       await fetch('/api/service-requests', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ requestId: id, ...data }) })
       doFetchAmc()
-    } catch (e) { console.error(e) }
+      toast.success('Service request updated')
+    } catch (e) { console.error(e); toast.error('Failed to update service request') }
   }
 
   const handleLogout = () => { setUser(null); setView('home') }
@@ -368,9 +586,20 @@ export default function AdminDashboard() {
   const openEditProduct = (p: any) => {
     setEditProduct(p)
     setProductForm({
-      name: p.name, categoryId: p.categoryId, description: p.description,
-      price: String(p.price), stock: String(p.stock), status: p.status,
-      steelGrade: p.steelGrade || '', capacity: p.capacity || '', dimensions: p.dimensions || '',
+      name: p.name,
+      categoryId: p.categoryId,
+      description: p.description || '',
+      shortDescription: p.shortDescription || '',
+      price: String(p.price),
+      stock: String(p.stock),
+      status: p.status,
+      steelGrade: p.steelGrade || '',
+      capacity: p.capacity || '',
+      dimensions: p.dimensions || '',
+      moq: p.moq ? String(p.moq) : '',
+      leadTime: p.leadTime || '',
+      featuredImage: p.featuredImage || '',
+      featured: p.featured || false,
     })
     setProductDialog(true)
   }
@@ -381,6 +610,28 @@ export default function AdminDashboard() {
     setProductDialog(true)
   }
 
+  const openEditCategory = (c: any) => {
+    setEditCategory(c)
+    setCategoryForm({
+      name: c.name,
+      slug: c.slug || '',
+      image: c.image || '',
+      parentId: c.parentId || '',
+    })
+    setCategoryDialog(true)
+  }
+
+  const openNewCategory = () => {
+    setEditCategory(null)
+    setCategoryForm(emptyCategoryForm)
+    setCategoryDialog(true)
+  }
+
+  const openDeleteCategory = (c: any) => {
+    setCategoryToDelete(c)
+    setDeleteCategoryDialog(true)
+  }
+
   const openLeadDetail = (lead: any) => {
     fetch(`/api/leads/${lead.id}`).then(r => r.json()).then(j => { if (j.status) { setSelectedLead(j.data); setLeadDetailDialog(true) } }).catch(console.error)
   }
@@ -389,12 +640,11 @@ export default function AdminDashboard() {
     fetch(`/api/orders/${order.id}`).then(r => r.json()).then(j => { if (j.status) { setSelectedOrder(j.data); setOrderDialog(true) } }).catch(console.error)
   }
 
-  // ─── Sidebar JSX is inlined in the render below ──────────
-
   // ═══════════════════════════════════════════════════════════
-  // TAB CONTENT RENDERERS (as functions, not components)
+  // TAB CONTENT RENDERERS
   // ═══════════════════════════════════════════════════════════
 
+  // ─── Dashboard Tab ──────────────────────────────────────
   const renderDashboardTab = () => {
     const ov = dashboardData?.overview || {}
     const stats = [
@@ -627,6 +877,7 @@ export default function AdminDashboard() {
     )
   }
 
+  // ─── Products Tab (with image upload) ───────────────────
   const renderProductsTab = () => (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
@@ -668,6 +919,7 @@ export default function AdminDashboard() {
                   <TableHead className="text-gray-400">Price</TableHead>
                   <TableHead className="text-gray-400">Stock</TableHead>
                   <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-400">Featured</TableHead>
                   <TableHead className="text-gray-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -676,8 +928,12 @@ export default function AdminDashboard() {
                   <TableRow key={p.id} className="border-[#2a2a2a] hover:bg-white/5">
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#2a2a2a] flex items-center justify-center flex-shrink-0">
-                          <Package className="w-4 h-4 text-gray-500" />
+                        <div className="w-10 h-10 rounded-lg bg-[#2a2a2a] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {p.featuredImage ? (
+                            <Image src={p.featuredImage} alt={p.name} width={40} height={40} className="w-full h-full object-cover" />
+                          ) : (
+                            <Package className="w-4 h-4 text-gray-500" />
+                          )}
                         </div>
                         <div>
                           <p className="text-white text-sm font-medium">{p.name}</p>
@@ -692,6 +948,13 @@ export default function AdminDashboard() {
                     </TableCell>
                     <TableCell><Badge className={statusBadgeCls(p.status)}>{p.status}</Badge></TableCell>
                     <TableCell>
+                      {p.featured ? (
+                        <Check className="w-4 h-4 text-[#59ff00]" />
+                      ) : (
+                        <span className="text-gray-600">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-1">
                         <Button size="sm" variant="ghost" onClick={() => openEditProduct(p)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0">
                           <Edit className="w-3.5 h-3.5" />
@@ -704,7 +967,7 @@ export default function AdminDashboard() {
                   </TableRow>
                 ))}
                 {products.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No products found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No products found</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -714,6 +977,74 @@ export default function AdminDashboard() {
     </motion.div>
   )
 
+  // ─── Categories Tab ─────────────────────────────────────
+  const renderCategoriesTab = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <h2 className="text-white text-xl font-bold">Categories</h2>
+        <Button onClick={openNewCategory} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
+          <Plus className="w-4 h-4 mr-1" /> Add Category
+        </Button>
+      </div>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-[#2a2a2a] hover:bg-transparent">
+                  <TableHead className="text-gray-400">Category</TableHead>
+                  <TableHead className="text-gray-400">Slug</TableHead>
+                  <TableHead className="text-gray-400">Parent</TableHead>
+                  <TableHead className="text-gray-400">Products</TableHead>
+                  <TableHead className="text-gray-400">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {categories.map((c: any) => (
+                  <TableRow key={c.id} className="border-[#2a2a2a] hover:bg-white/5">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#2a2a2a] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {c.image ? (
+                            <Image src={c.image} alt={c.name} width={40} height={40} className="w-full h-full object-cover" />
+                          ) : (
+                            <Grid3X3 className="w-4 h-4 text-gray-500" />
+                          )}
+                        </div>
+                        <span className="text-white text-sm font-medium">{c.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-gray-400 text-sm font-mono">{c.slug}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{c.parent?.name || '—'}</TableCell>
+                    <TableCell>
+                      <Badge className="bg-[#59ff00]/10 text-[#59ff00] border-[#59ff00]/30">
+                        {c._count?.products || 0}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => openEditCategory(c)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0">
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => openDeleteCategory(c)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {categories.length === 0 && (
+                  <TableRow><TableCell colSpan={5} className="text-center text-gray-500 py-8">No categories found</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+
+  // ─── Orders Tab ─────────────────────────────────────────
   const renderOrdersTab = () => {
     const orderStatuses = ['all', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled']
     return (
@@ -788,237 +1119,512 @@ export default function AdminDashboard() {
     )
   }
 
-  const renderLeadsTab = () => {
-    const pipelineColumns = [
-      { key: 'new', label: 'New', color: 'border-blue-500/30' },
-      { key: 'contacted', label: 'Contacted', color: 'border-cyan-500/30' },
-      { key: 'quotation_sent', label: 'Quotation Sent', color: 'border-purple-500/30' },
-      { key: 'negotiation', label: 'Negotiation', color: 'border-yellow-500/30' },
-      { key: 'won', label: 'Won', color: 'border-emerald-500/30' },
-      { key: 'lost', label: 'Lost', color: 'border-red-500/30' },
-    ]
-    const getLeadsByStatus = (status: string) => leads.filter((l: any) => l.status === status)
-
-    return (
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-white text-xl font-bold">Leads Pipeline</h2>
-          <Button onClick={() => { setLeadForm(emptyLeadForm); setLeadDialog(true) }} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
-            <Plus className="w-4 h-4 mr-1" /> Add Lead
-          </Button>
-        </div>
-        <div className="flex gap-3 overflow-x-auto pb-4 custom-scrollbar">
-          {pipelineColumns.map(({ key, label, color }) => (
-            <div key={key} className="flex-shrink-0 w-64">
-              <div className={`rounded-xl border ${color} bg-[#181818] overflow-hidden`}>
-                <div className="px-3 py-2 border-b border-[#2a2a2a] flex items-center justify-between">
-                  <span className="text-white text-sm font-semibold">{label}</span>
-                  <Badge className="bg-white/10 text-gray-300 border-white/10 text-[10px]">{getLeadsByStatus(key).length}</Badge>
-                </div>
-                <div className="p-2 space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                  {getLeadsByStatus(key).map((l: any) => (
-                    <div key={l.id} onClick={() => openLeadDetail(l)} className="p-3 rounded-lg bg-[#0b0b0b] border border-[#2a2a2a] hover:border-[#59ff00]/30 cursor-pointer transition-all">
-                      <p className="text-white text-sm font-medium">{l.name}</p>
-                      {l.company && <p className="text-gray-400 text-xs flex items-center gap-1 mt-1"><Building2 className="w-3 h-3" />{l.company}</p>}
-                      {l.city && <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{l.city}</p>}
-                      {l.phone && <p className="text-gray-400 text-xs flex items-center gap-1 mt-0.5"><Phone className="w-3 h-3" />{l.phone}</p>}
-                      {l.assignee && <p className="text-[#59ff00] text-[10px] mt-1.5 font-medium">Assigned: {l.assignee.name}</p>}
-                    </div>
-                  ))}
-                  {getLeadsByStatus(key).length === 0 && (
-                    <p className="text-gray-600 text-xs text-center py-4">No leads</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-    )
-  }
-
-  const renderEmployeesTab = () => (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
+  // ─── Placeholder Tabs (Part 2) ──────────────────────────
+  // ─── Leads Tab ──────────────────────────────────────────
+  const renderLeadsTab = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-white text-xl font-bold">Employees</h2>
-        <Button onClick={() => { setEmployeeForm(emptyEmployeeForm); setEmployeeDialog(true) }} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
-          <Plus className="w-4 h-4 mr-1" /> Add Employee
-        </Button>
+        <h2 className="text-white text-xl font-bold">Leads</h2>
+        <Button onClick={() => { setLeadForm({ name: '', company: '', phone: '', email: '', city: '', requirement: '', message: '', source: 'website', assignedTo: '' }); setLeadDialog(true) }} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"><Plus className="w-4 h-4 mr-1" /> Add Lead</Button>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {employees.map((e: any) => (
-          <Card key={e.id} className="bg-[#181818] border-[#2a2a2a] hover:border-[#59ff00]/20 transition-colors">
-            <CardContent className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-full bg-[#2a2a2a] flex items-center justify-center flex-shrink-0">
-                  <UserCog className="w-5 h-5 text-gray-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm">{e.user?.name}</p>
-                  <p className="text-gray-400 text-xs">{e.designation}</p>
-                  <p className="text-gray-500 text-xs">{e.department}</p>
-                </div>
-                <Badge className={statusBadgeCls(e.status)}>{e.status}</Badge>
-              </div>
-              <Separator className="bg-[#2a2a2a] my-3" />
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div><p className="text-gray-500">Salary</p><p className="text-[#59ff00] font-semibold">{fmt(e.salary)}</p></div>
-                <div><p className="text-gray-500">Joined</p><p className="text-gray-300">{fmtDate(e.joiningDate)}</p></div>
-                <div><p className="text-gray-500">Email</p><p className="text-gray-300 truncate">{e.user?.email}</p></div>
-                <div><p className="text-gray-500">Tasks</p><p className="text-gray-300">{e._count?.tasks || 0}</p></div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        {employees.length === 0 && <div className="col-span-3 text-center text-gray-500 py-12">No employees found</div>}
-      </div>
-    </motion.div>
-  )
-
-  const renderAmcTab = () => (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-white text-xl font-bold">AMC Contracts</h2>
-          <Button onClick={() => { setAmcForm(emptyAmcForm); setAmcDialog(true) }} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
-            <Plus className="w-4 h-4 mr-1" /> Add Contract
-          </Button>
-        </div>
-        <Card className="bg-[#181818] border-[#2a2a2a]">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-[#2a2a2a] hover:bg-transparent">
-                    <TableHead className="text-gray-400">Customer</TableHead>
-                    <TableHead className="text-gray-400">Plan</TableHead>
-                    <TableHead className="text-gray-400">Start Date</TableHead>
-                    <TableHead className="text-gray-400">End Date</TableHead>
-                    <TableHead className="text-gray-400">Amount</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400">Service Req</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {amcContracts.map((c: any) => (
-                    <TableRow key={c.id} className="border-[#2a2a2a] hover:bg-white/5">
-                      <TableCell className="text-white text-sm">{c.customer?.name}</TableCell>
-                      <TableCell className="text-gray-300 text-sm">{c.plan}</TableCell>
-                      <TableCell className="text-gray-300 text-xs">{fmtDate(c.startDate)}</TableCell>
-                      <TableCell className="text-gray-300 text-xs">{fmtDate(c.endDate)}</TableCell>
-                      <TableCell className="text-[#59ff00] text-sm font-semibold">{fmt(c.amount)}</TableCell>
-                      <TableCell><Badge className={statusBadgeCls(c.status)}>{c.status}</Badge></TableCell>
-                      <TableCell className="text-gray-300 text-sm">{c._count?.serviceRequests || 0}</TableCell>
-                    </TableRow>
-                  ))}
-                  {amcContracts.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No AMC contracts found</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-white text-xl font-bold flex items-center gap-2">
-            <Wrench className="w-5 h-5 text-[#59ff00]" /> Service Requests
-          </h2>
-          <Button onClick={() => { setServiceForm(emptyServiceForm); setServiceDialog(true) }} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
-            <Plus className="w-4 h-4 mr-1" /> Add Request
-          </Button>
-        </div>
-        <Card className="bg-[#181818] border-[#2a2a2a]">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-[#2a2a2a] hover:bg-transparent">
-                    <TableHead className="text-gray-400">Customer</TableHead>
-                    <TableHead className="text-gray-400">Issue</TableHead>
-                    <TableHead className="text-gray-400">Priority</TableHead>
-                    <TableHead className="text-gray-400">Assigned To</TableHead>
-                    <TableHead className="text-gray-400">Status</TableHead>
-                    <TableHead className="text-gray-400">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {serviceRequests.map((sr: any) => (
-                    <TableRow key={sr.id} className="border-[#2a2a2a] hover:bg-white/5">
-                      <TableCell className="text-white text-sm">{sr.customer?.name}</TableCell>
-                      <TableCell className="text-gray-300 text-sm max-w-[200px] truncate">{sr.issue}</TableCell>
-                      <TableCell><Badge className={priorityBadge(sr.priority)}>{sr.priority}</Badge></TableCell>
-                      <TableCell className="text-gray-300 text-sm">{sr.technician?.name || 'Unassigned'}</TableCell>
-                      <TableCell><Badge className={statusBadgeCls(sr.status)}>{sr.status.replace('_', ' ')}</Badge></TableCell>
-                      <TableCell>
-                        <Select onValueChange={(v) => handleUpdateServiceRequest(sr.id, { status: v })}>
-                          <SelectTrigger className="h-8 w-8 p-0 border-0 bg-transparent text-gray-400 hover:text-white">
-                            <ChevronDown className="w-3.5 h-3.5" />
-                          </SelectTrigger>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Name</TableHead><TableHead className="text-gray-400">Company</TableHead><TableHead className="text-gray-400">City</TableHead><TableHead className="text-gray-400">Source</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {leads.map((l: any) => (
+                  <TableRow key={l.id} className="border-[#2a2a2a] hover:bg-white/5">
+                    <TableCell className="text-white text-sm">{l.name}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{l.company || '-'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{l.city || '-'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm capitalize">{l.source || '-'}</TableCell>
+                    <TableCell><Badge className={`text-[10px] ${leadBadge(l.status)}`}>{l.status.replace('_', ' ')}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => openLeadDetail(l)} className="text-blue-400 hover:text-blue-300 h-8 w-8 p-0"><Eye className="w-3.5 h-3.5" /></Button>
+                        <Select onValueChange={(v) => handleUpdateLeadStatus(l.id, v)}>
+                          <SelectTrigger className="h-8 w-8 p-0 border-0 bg-transparent text-gray-400"><ChevronDown className="w-3.5 h-3.5" /></SelectTrigger>
                           <SelectContent className="bg-[#181818] border-[#2a2a2a]">
-                            {['open', 'in_progress', 'resolved', 'closed'].map((s) => (
-                              <SelectItem key={s} value={s} className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">{s.replace('_', ' ')}</SelectItem>
-                            ))}
+                            {['new', 'contacted', 'quotation_sent', 'negotiation', 'won', 'lost'].map(s => <SelectItem key={s} value={s} className="text-white capitalize">{s.replace('_', ' ')}</SelectItem>)}
                           </SelectContent>
                         </Select>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {serviceRequests.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No service requests found</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </motion.div>
-  )
-
-  const renderSettingsTab = () => (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-4">
-      <h2 className="text-white text-xl font-bold">Company Settings</h2>
-      <Card className="bg-[#181818] border-[#2a2a2a] max-w-2xl">
-        <CardContent className="p-6 space-y-4">
-          <div className="space-y-2">
-            <Label className="text-gray-300">Company Name</Label>
-            <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={settingsData.name} onChange={(e) => setSettingsData(prev => ({ ...prev, name: e.target.value }))} placeholder="Urban Kitchen Manufacturing & Solutions" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {leads.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No leads found</TableCell></TableRow>}
+              </TableBody>
+            </Table>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300">Email</Label>
-              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={settingsData.email} onChange={(e) => setSettingsData(prev => ({ ...prev, email: e.target.value }))} placeholder="info@urbankitchens.com" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300">Phone</Label>
-              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={settingsData.phone} onChange={(e) => setSettingsData(prev => ({ ...prev, phone: e.target.value }))} placeholder="+91 98765 43210" />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label className="text-gray-300">Address</Label>
-            <Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={settingsData.address} onChange={(e) => setSettingsData(prev => ({ ...prev, address: e.target.value }))} placeholder="Company address..." rows={3} />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-gray-300">GST Number</Label>
-            <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={settingsData.gstNumber} onChange={(e) => setSettingsData(prev => ({ ...prev, gstNumber: e.target.value }))} placeholder="29AAACR1234F1ZG" />
-          </div>
-          <Button onClick={() => alert('Settings saved successfully!')} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold mt-4">Save Settings</Button>
         </CardContent>
       </Card>
     </motion.div>
   )
 
+  // ─── Quotations Tab ─────────────────────────────────────
+  const renderQuotationsTab = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <h2 className="text-white text-xl font-bold">Quotations</h2>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Quotation #</TableHead><TableHead className="text-gray-400">Lead</TableHead><TableHead className="text-gray-400">Amount</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Valid Until</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {quotationList.map((q: any) => (
+                  <TableRow key={q.id} className="border-[#2a2a2a] hover:bg-white/5">
+                    <TableCell className="text-white text-sm font-mono">{q.quotationNumber}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{q.lead?.name || '-'}</TableCell>
+                    <TableCell className="text-[#59ff00] text-sm font-semibold">{fmt(q.amount)}</TableCell>
+                    <TableCell><Badge className={`text-[10px] ${statusBadgeCls(q.status)}`}>{q.status}</Badge></TableCell>
+                    <TableCell className="text-gray-400 text-sm">{q.validUntil ? fmtDate(q.validUntil) : '-'}</TableCell>
+                  </TableRow>
+                ))}
+                {quotationList.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-gray-500 py-8">No quotations found</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+
+  // ─── Customers Tab (User Management) ────────────────────
+  const renderCustomersTab = () => {
+    const openNewUser = () => { setEditUser(null); setUserForm({ name: '', email: '', phone: '', password: '', roleId: '', status: 'active' }); setUserDialog(true) }
+    const openEditUser = (u: any) => { setEditUser(u); setUserForm({ name: u.name, email: u.email, phone: u.phone || '', password: '', roleId: u.roleId, status: u.status }); setUserDialog(true) }
+
+    const handleSaveUser = async () => {
+      try {
+        if (editUser) {
+          const body: any = { name: userForm.name, email: userForm.email, phone: userForm.phone, status: userForm.status, roleId: userForm.roleId }
+          if (userForm.password) body.password = userForm.password
+          const res = await fetch(`/api/users/${editUser.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+          const json = await res.json()
+          if (json.status) { setUserDialog(false); doFetchUsers(); toast.success('User updated') } else { toast.error(json.message || 'Failed') }
+        } else {
+          const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userForm) })
+          const json = await res.json()
+          if (json.status) { setUserDialog(false); doFetchUsers(); toast.success('User created') } else { toast.error(json.message || 'Failed') }
+        }
+      } catch (e) { console.error(e); toast.error('Failed to save user') }
+    }
+
+    const handleDeleteUser = async (id: string) => {
+      if (!confirm('Delete this user?')) return
+      try { await fetch(`/api/users/${id}`, { method: 'DELETE' }); doFetchUsers(); toast.success('User deleted') } catch (e) { toast.error('Failed to delete') }
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-white text-xl font-bold">Users & Customers</h2>
+          <Button onClick={openNewUser} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"><Plus className="w-4 h-4 mr-1" /> Add User</Button>
+        </div>
+        <div className="flex gap-2">
+          {['all', 'admin', 'manager', 'employee', 'customer'].map(r => (
+            <Button key={r} variant={roleFilter === r ? 'default' : 'ghost'} size="sm" onClick={() => setRoleFilter(r)}
+              className={roleFilter === r ? 'bg-[#59ff00] text-black' : 'text-gray-400 hover:text-white capitalize'}>{r === 'all' ? 'All' : r}</Button>
+          ))}
+        </div>
+        <Card className="bg-[#181818] border-[#2a2a2a]">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Name</TableHead><TableHead className="text-gray-400">Email</TableHead><TableHead className="text-gray-400">Phone</TableHead><TableHead className="text-gray-400">Role</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {userList.map((u: any) => (
+                    <TableRow key={u.id} className="border-[#2a2a2a] hover:bg-white/5">
+                      <TableCell className="text-white text-sm">{u.name}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{u.email}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{u.phone || '-'}</TableCell>
+                      <TableCell><Badge className="bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30 text-[10px]">{u.role?.roleName || '-'}</Badge></TableCell>
+                      <TableCell><Badge className={`text-[10px] ${statusBadgeCls(u.status)}`}>{u.status}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => openEditUser(u)} className="text-blue-400 h-8 w-8 p-0"><Edit className="w-3.5 h-3.5" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteUser(u.id)} className="text-red-400 h-8 w-8 p-0"><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {userList.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No users found</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+        <Dialog open={userDialog} onOpenChange={setUserDialog}>
+          <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-md">
+            <DialogHeader><DialogTitle>{editUser ? 'Edit User' : 'Add User'}</DialogTitle><DialogDescription>Fill in user details</DialogDescription></DialogHeader>
+            <div className="space-y-3">
+              <div><Label className="text-gray-400 text-xs">Name</Label><Input value={userForm.name} onChange={(e) => setUserForm(f => ({ ...f, name: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Email</Label><Input value={userForm.email} onChange={(e) => setUserForm(f => ({ ...f, email: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Phone</Label><Input value={userForm.phone} onChange={(e) => setUserForm(f => ({ ...f, phone: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Password {editUser && '(leave blank to keep)'}</Label><Input type="password" value={userForm.password} onChange={(e) => setUserForm(f => ({ ...f, password: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Role</Label>
+                <Select value={userForm.roleId} onValueChange={(v) => setUserForm(f => ({ ...f, roleId: v }))}>
+                  <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue placeholder="Select role" /></SelectTrigger>
+                  <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                    {roleList.map((r: any) => <SelectItem key={r.id} value={r.id} className="text-white capitalize">{r.roleName}</SelectItem>)}
+                    {roleList.length === 0 && ['admin', 'manager', 'employee', 'customer'].map(r => <SelectItem key={r} value={r} className="text-white capitalize">{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label className="text-gray-400 text-xs">Status</Label>
+                <Select value={userForm.status} onValueChange={(v) => setUserForm(f => ({ ...f, status: v }))}>
+                  <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-[#181818] border-[#2a2a2a]"><SelectItem value="active" className="text-white">Active</SelectItem><SelectItem value="inactive" className="text-white">Inactive</SelectItem></SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter><Button variant="ghost" onClick={() => setUserDialog(false)} className="text-gray-400">Cancel</Button><Button onClick={handleSaveUser} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90">{editUser ? 'Update' : 'Create'}</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </motion.div>
+    )
+  }
+
+  // ─── Employees Tab ──────────────────────────────────────
+  const renderEmployeesTab = () => {
+    const openNewEmp = () => { setEditEmp(null); setEmpEditForm({ name: '', email: '', phone: '', password: '', department: '', designation: '', salary: '', joiningDate: '', status: 'active' }); setEmpEditDialog(true) }
+    const openEditEmp = (e: any) => { setEditEmp(e); setEmpEditForm({ name: e.user?.name || '', email: e.user?.email || '', phone: e.user?.phone || '', password: '', department: e.department || '', designation: e.designation || '', salary: String(e.salary || ''), joiningDate: e.joiningDate ? new Date(e.joiningDate).toISOString().split('T')[0] : '', status: e.status || 'active' }); setEmpEditDialog(true) }
+
+    const handleSaveEmp = async () => {
+      try {
+        if (editEmp) {
+          const res = await fetch(`/api/employees/${editEmp.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ department: empEditForm.department, designation: empEditForm.designation, salary: Number(empEditForm.salary), status: empEditForm.status }) })
+          const json = await res.json()
+          if (json.status) { setEmpEditDialog(false); doFetchEmployees(); toast.success('Employee updated') } else { toast.error(json.message || 'Failed') }
+        } else {
+          const res = await fetch('/api/employees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(empEditForm) })
+          const json = await res.json()
+          if (json.status) { setEmpEditDialog(false); doFetchEmployees(); toast.success('Employee created') } else { toast.error(json.message || 'Failed') }
+        }
+      } catch (e) { console.error(e); toast.error('Failed to save employee') }
+    }
+
+    const handleDeleteEmp = async (id: string) => {
+      if (!confirm('Delete this employee?')) return
+      try { await fetch(`/api/employees/${id}`, { method: 'DELETE' }); doFetchEmployees(); toast.success('Employee deleted') } catch (e) { toast.error('Failed') }
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-white text-xl font-bold">Employees</h2>
+          <Button onClick={openNewEmp} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"><Plus className="w-4 h-4 mr-1" /> Add Employee</Button>
+        </div>
+        <Card className="bg-[#181818] border-[#2a2a2a]">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Name</TableHead><TableHead className="text-gray-400">Department</TableHead><TableHead className="text-gray-400">Designation</TableHead><TableHead className="text-gray-400">Salary</TableHead><TableHead className="text-gray-400">Join Date</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {employees.map((e: any) => (
+                    <TableRow key={e.id} className="border-[#2a2a2a] hover:bg-white/5">
+                      <TableCell className="text-white text-sm">{e.user?.name || '-'}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{e.department}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{e.designation}</TableCell>
+                      <TableCell className="text-[#59ff00] text-sm font-semibold">{fmt(e.salary)}</TableCell>
+                      <TableCell className="text-gray-400 text-sm">{fmtDate(e.joiningDate)}</TableCell>
+                      <TableCell><Badge className={`text-[10px] ${statusBadgeCls(e.status)}`}>{e.status}</Badge></TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => openEditEmp(e)} className="text-blue-400 h-8 w-8 p-0"><Edit className="w-3.5 h-3.5" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteEmp(e.id)} className="text-red-400 h-8 w-8 p-0"><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {employees.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No employees found</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+        <Dialog open={empEditDialog} onOpenChange={setEmpEditDialog}>
+          <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-md">
+            <DialogHeader><DialogTitle>{editEmp ? 'Edit Employee' : 'Add Employee'}</DialogTitle><DialogDescription>Fill in employee details</DialogDescription></DialogHeader>
+            <div className="space-y-3">
+              <div><Label className="text-gray-400 text-xs">Name</Label><Input value={empEditForm.name} onChange={(e) => setEmpEditForm(f => ({ ...f, name: e.target.value }))} disabled={!!editEmp} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Email</Label><Input value={empEditForm.email} onChange={(e) => setEmpEditForm(f => ({ ...f, email: e.target.value }))} disabled={!!editEmp} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              {!editEmp && <div><Label className="text-gray-400 text-xs">Password</Label><Input type="password" value={empEditForm.password} onChange={(e) => setEmpEditForm(f => ({ ...f, password: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>}
+              <div><Label className="text-gray-400 text-xs">Department</Label><Input value={empEditForm.department} onChange={(e) => setEmpEditForm(f => ({ ...f, department: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Designation</Label><Input value={empEditForm.designation} onChange={(e) => setEmpEditForm(f => ({ ...f, designation: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Salary</Label><Input type="number" value={empEditForm.salary} onChange={(e) => setEmpEditForm(f => ({ ...f, salary: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              <div><Label className="text-gray-400 text-xs">Joining Date</Label><Input type="date" value={empEditForm.joiningDate} onChange={(e) => setEmpEditForm(f => ({ ...f, joiningDate: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+              {editEmp && <div><Label className="text-gray-400 text-xs">Status</Label><Select value={empEditForm.status} onValueChange={(v) => setEmpEditForm(f => ({ ...f, status: v }))}><SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue /></SelectTrigger><SelectContent className="bg-[#181818] border-[#2a2a2a]"><SelectItem value="active" className="text-white">Active</SelectItem><SelectItem value="on_leave" className="text-white">On Leave</SelectItem><SelectItem value="terminated" className="text-white">Terminated</SelectItem></SelectContent></Select></div>}
+            </div>
+            <DialogFooter><Button variant="ghost" onClick={() => setEmpEditDialog(false)} className="text-gray-400">Cancel</Button><Button onClick={handleSaveEmp} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90">{editEmp ? 'Update' : 'Create'}</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </motion.div>
+    )
+  }
+
+  // ─── Attendance Tab ─────────────────────────────────────
+  const renderAttendanceTab = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <h2 className="text-white text-xl font-bold">Attendance</h2>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Employee</TableHead><TableHead className="text-gray-400">Date</TableHead><TableHead className="text-gray-400">Check In</TableHead><TableHead className="text-gray-400">Check Out</TableHead><TableHead className="text-gray-400">Status</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {attendanceRecords.map((a: any) => (
+                  <TableRow key={a.id} className="border-[#2a2a2a] hover:bg-white/5">
+                    <TableCell className="text-white text-sm">{a.employee?.user?.name || '-'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{fmtDate(a.date)}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{a.checkin ? new Date(a.checkin).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{a.checkout ? new Date(a.checkout).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '-'}</TableCell>
+                    <TableCell><Badge className={`text-[10px] ${statusBadgeCls(a.status)}`}>{a.status}</Badge></TableCell>
+                  </TableRow>
+                ))}
+                {attendanceRecords.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-gray-500 py-8">No attendance records</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+
+  // ─── Leaves Tab ─────────────────────────────────────────
+  const renderLeavesTab = () => {
+    const handleLeaveAction = async (id: string, status: string) => {
+      try { await fetch(`/api/leaves/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); setLeaveFilter('all'); toast.success(`Leave ${status}`) } catch (e) { toast.error('Failed') }
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        <h2 className="text-white text-xl font-bold">Leave Requests</h2>
+        <div className="flex gap-2">
+          {['all', 'pending', 'approved', 'rejected'].map(s => (
+            <Button key={s} variant={leaveFilter === s ? 'default' : 'ghost'} size="sm" onClick={() => setLeaveFilter(s)}
+              className={leaveFilter === s ? 'bg-[#59ff00] text-black' : 'text-gray-400 capitalize'}>{s === 'all' ? 'All' : s}</Button>
+          ))}
+        </div>
+        <Card className="bg-[#181818] border-[#2a2a2a]">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Employee</TableHead><TableHead className="text-gray-400">Type</TableHead><TableHead className="text-gray-400">From</TableHead><TableHead className="text-gray-400">To</TableHead><TableHead className="text-gray-400">Reason</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {leaveList.map((l: any) => (
+                    <TableRow key={l.id} className="border-[#2a2a2a] hover:bg-white/5">
+                      <TableCell className="text-white text-sm">{l.employee?.user?.name || '-'}</TableCell>
+                      <TableCell className="text-gray-300 text-sm capitalize">{l.type}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{fmtDate(l.startDate)}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{fmtDate(l.endDate)}</TableCell>
+                      <TableCell className="text-gray-300 text-sm max-w-[200px] truncate">{l.reason || '-'}</TableCell>
+                      <TableCell><Badge className={`text-[10px] ${l.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' : l.status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{l.status}</Badge></TableCell>
+                      <TableCell>
+                        {l.status === 'pending' && (
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => handleLeaveAction(l.id, 'approved')} className="text-emerald-400 h-8 px-2"><Check className="w-3.5 h-3.5" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => handleLeaveAction(l.id, 'rejected')} className="text-red-400 h-8 px-2"><X className="w-3.5 h-3.5" /></Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {leaveList.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No leave requests</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
+
+  // ─── AMC Tab ────────────────────────────────────────────
+  const renderAmcTab = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-white text-xl font-bold">AMC Contracts</h2>
+        <Button onClick={() => { setAmcForm({ customerId: '', plan: '', startDate: '', endDate: '', amount: '', coverage: '' }); setAmcDialog(true) }} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"><Plus className="w-4 h-4 mr-1" /> Add Contract</Button>
+      </div>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Customer</TableHead><TableHead className="text-gray-400">Plan</TableHead><TableHead className="text-gray-400">Amount</TableHead><TableHead className="text-gray-400">Start</TableHead><TableHead className="text-gray-400">End</TableHead><TableHead className="text-gray-400">Status</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {amcContracts.map((c: any) => (
+                  <TableRow key={c.id} className="border-[#2a2a2a] hover:bg-white/5">
+                    <TableCell className="text-white text-sm">{c.customer?.name || '-'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{c.plan}</TableCell>
+                    <TableCell className="text-[#59ff00] text-sm font-semibold">{fmt(c.amount)}</TableCell>
+                    <TableCell className="text-gray-400 text-sm">{fmtDate(c.startDate)}</TableCell>
+                    <TableCell className="text-gray-400 text-sm">{fmtDate(c.endDate)}</TableCell>
+                    <TableCell><Badge className={`text-[10px] ${statusBadgeCls(c.status)}`}>{c.status}</Badge></TableCell>
+                  </TableRow>
+                ))}
+                {amcContracts.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No AMC contracts</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+
+  // ─── Service Tab ────────────────────────────────────────
+  const renderServiceTab = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-white text-xl font-bold">Service Requests</h2>
+        <Button onClick={() => { setServiceForm({ customerId: '', contractId: '', issue: '', priority: 'medium', assignedTechnician: '' }); setServiceDialog(true) }} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"><Plus className="w-4 h-4 mr-1" /> New Request</Button>
+      </div>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Customer</TableHead><TableHead className="text-gray-400">Issue</TableHead><TableHead className="text-gray-400">Priority</TableHead><TableHead className="text-gray-400">Assigned To</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {serviceRequests.map((s: any) => (
+                  <TableRow key={s.id} className="border-[#2a2a2a] hover:bg-white/5">
+                    <TableCell className="text-white text-sm">{s.customer?.name || '-'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm max-w-[200px] truncate">{s.issue}</TableCell>
+                    <TableCell><Badge className={`text-[10px] ${priorityBadge(s.priority)}`}>{s.priority}</Badge></TableCell>
+                    <TableCell className="text-gray-300 text-sm">{s.technician?.name || '-'}</TableCell>
+                    <TableCell><Badge className={`text-[10px] ${statusBadgeCls(s.status)}`}>{s.status.replace('_', ' ')}</Badge></TableCell>
+                    <TableCell>
+                      <Select onValueChange={(v) => handleUpdateServiceRequest(s.id, { status: v })}>
+                        <SelectTrigger className="h-8 w-8 p-0 border-0 bg-transparent text-gray-400"><ChevronDown className="w-3.5 h-3.5" /></SelectTrigger>
+                        <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                          {['open', 'in_progress', 'resolved', 'closed'].map(st => <SelectItem key={st} value={st} className="text-white">{st.replace('_', ' ')}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {serviceRequests.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No service requests</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+
+  // ─── Inquiries Tab ──────────────────────────────────────
+  const renderInquiriesTab = () => {
+    const updateInquiryStatus = async (id: string, status: string) => {
+      try { await fetch('/api/inquiries', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ inquiryId: id, status }) }); setInquiryList(prev => prev.map(i => i.id === id ? { ...i, status } : i)); toast.success(`Inquiry marked as ${status}`) } catch (e) { toast.error('Failed') }
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        <h2 className="text-white text-xl font-bold">Inquiries</h2>
+        <Card className="bg-[#181818] border-[#2a2a2a]">
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Name</TableHead><TableHead className="text-gray-400">Email</TableHead><TableHead className="text-gray-400">Subject</TableHead><TableHead className="text-gray-400">Message</TableHead><TableHead className="text-gray-400">Date</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {inquiryList.map((i: any) => (
+                    <TableRow key={i.id} className="border-[#2a2a2a] hover:bg-white/5">
+                      <TableCell className="text-white text-sm">{i.name}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{i.email}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{i.subject || '-'}</TableCell>
+                      <TableCell className="text-gray-300 text-sm max-w-[200px] truncate">{i.message}</TableCell>
+                      <TableCell className="text-gray-400 text-sm">{fmtDate(i.createdAt)}</TableCell>
+                      <TableCell><Badge className={`text-[10px] ${i.status === 'new' ? 'bg-blue-500/20 text-blue-400' : i.status === 'read' ? 'bg-yellow-500/20 text-yellow-400' : i.status === 'replied' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-500/20 text-gray-400'}`}>{i.status}</Badge></TableCell>
+                      <TableCell>
+                        {i.status === 'new' && <Button size="sm" variant="ghost" onClick={() => updateInquiryStatus(i.id, 'read')} className="text-yellow-400 h-8 px-2 text-xs">Mark Read</Button>}
+                        {i.status === 'read' && <Button size="sm" variant="ghost" onClick={() => updateInquiryStatus(i.id, 'replied')} className="text-emerald-400 h-8 px-2 text-xs">Mark Replied</Button>}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {inquiryList.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No inquiries</TableCell></TableRow>}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
+
+  // ─── Settings Tab ───────────────────────────────────────
+  const renderSettingsTab = () => {
+    const handleSaveSettings = async () => {
+      setSettingsLoading(true)
+      try {
+        const entries = Object.entries(settingsObj).map(([key, value]) => ({ key, value }))
+        const res = await fetch('/api/settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ settings: entries }) })
+        const json = await res.json()
+        if (json.status) { toast.success('Settings saved') } else { toast.error('Failed to save settings') }
+      } catch (e) { toast.error('Failed to save') } finally { setSettingsLoading(false) }
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+        <h2 className="text-white text-xl font-bold">Company Settings</h2>
+        <Card className="bg-[#181818] border-[#2a2a2a]">
+          <CardContent className="p-6 space-y-4">
+            <div><Label className="text-gray-400 text-xs">Company Name</Label><Input value={settingsObj.company_name || ''} onChange={(e) => setSettingsObj(s => ({ ...s, company_name: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+            <div><Label className="text-gray-400 text-xs">Email</Label><Input value={settingsObj.company_email || ''} onChange={(e) => setSettingsObj(s => ({ ...s, company_email: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+            <div><Label className="text-gray-400 text-xs">Phone</Label><Input value={settingsObj.company_phone || ''} onChange={(e) => setSettingsObj(s => ({ ...s, company_phone: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+            <div><Label className="text-gray-400 text-xs">Address</Label><Textarea value={settingsObj.company_address || ''} onChange={(e) => setSettingsObj(s => ({ ...s, company_address: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={3} /></div>
+            <div><Label className="text-gray-400 text-xs">GST Number</Label><Input value={settingsObj.gst_number || ''} onChange={(e) => setSettingsObj(s => ({ ...s, gst_number: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+            <div><Label className="text-gray-400 text-xs">Currency</Label><Input value={settingsObj.currency || ''} onChange={(e) => setSettingsObj(s => ({ ...s, currency: e.target.value }))} className="bg-[#0b0b0b] border-[#2a2a2a] text-white" /></div>
+            <Button onClick={handleSaveSettings} disabled={settingsLoading} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">{settingsLoading ? 'Saving...' : 'Save Settings'}</Button>
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
+
+  // ─── Activity Tab ───────────────────────────────────────
+  const renderActivityTab = () => (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <h2 className="text-white text-xl font-bold">Recent Activity</h2>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-4">
+          <div className="max-h-[600px] overflow-y-auto custom-scrollbar space-y-3">
+            {activityList.map((a: any, i: number) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#0b0b0b] border border-[#2a2a2a]">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${a.type === 'order' ? 'bg-blue-500/10' : 'bg-purple-500/10'}`}>
+                  {a.type === 'order' ? <ShoppingCart className="w-4 h-4 text-blue-400" /> : <Users className="w-4 h-4 text-purple-400" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm">{a.description}</p>
+                  <p className="text-gray-500 text-xs mt-1">{fmtDate(a.date)}</p>
+                </div>
+                <Badge className={`text-[10px] ${a.type === 'order' ? orderBadge(a.status) : leadBadge(a.status)}`}>{a.status?.replace('_', ' ')}</Badge>
+              </div>
+            ))}
+            {activityList.length === 0 && <p className="text-gray-500 text-sm text-center py-8">No recent activity</p>}
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+
+  // ─── Tab Router ─────────────────────────────────────────
   const renderTabContent = () => {
     switch (adminTab) {
       case 'dashboard': return renderDashboardTab()
       case 'products': return renderProductsTab()
+      case 'categories': return renderCategoriesTab()
       case 'orders': return renderOrdersTab()
       case 'leads': return renderLeadsTab()
+      case 'quotations': return renderQuotationsTab()
+      case 'customers': return renderCustomersTab()
       case 'employees': return renderEmployeesTab()
+      case 'attendance': return renderAttendanceTab()
+      case 'leaves': return renderLeavesTab()
       case 'amc': return renderAmcTab()
+      case 'service': return renderServiceTab()
+      case 'inquiries': return renderInquiriesTab()
       case 'settings': return renderSettingsTab()
+      case 'activity': return renderActivityTab()
       default: return renderDashboardTab()
     }
   }
@@ -1040,12 +1646,12 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-          <nav className="flex-1 py-4 px-2 space-y-1">
+          <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
             {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
                 onClick={() => { setAdminTab(key); setMobileOpen(false) }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium
                   ${adminTab === key
                     ? 'bg-[#59ff00]/10 text-[#59ff00] border border-[#59ff00]/20'
                     : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -1089,12 +1695,12 @@ export default function AdminDashboard() {
                 <p className="text-[#59ff00] text-[10px] font-medium tracking-wider uppercase">Admin Panel</p>
               </div>
             </div>
-            <nav className="flex-1 py-4 px-2 space-y-1">
+            <nav className="flex-1 py-2 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
               {NAV_ITEMS.map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => { setAdminTab(key); setMobileOpen(false) }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium
                     ${adminTab === key
                       ? 'bg-[#59ff00]/10 text-[#59ff00] border border-[#59ff00]/20'
                       : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -1154,7 +1760,7 @@ export default function AdminDashboard() {
 
       {/* ─── DIALOGS ────────────────────────────────────────── */}
 
-      {/* Product Dialog */}
+      {/* Product Dialog (with image upload) */}
       <Dialog open={productDialog} onOpenChange={setProductDialog}>
         <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1182,6 +1788,66 @@ export default function AdminDashboard() {
                 <Label className="text-gray-300 text-sm">Price (₹) *</Label>
                 <Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={productForm.price} onChange={(e) => setProductForm(p => ({ ...p, price: e.target.value }))} />
               </div>
+            </div>
+
+            {/* Image Upload */}
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-sm">Featured Image</Label>
+              <div className="flex items-start gap-3">
+                {productForm.featuredImage ? (
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-[#2a2a2a] flex-shrink-0 group">
+                    <Image src={productForm.featuredImage} alt="Preview" fill className="object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setProductForm(p => ({ ...p, featuredImage: '' }))}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-lg border border-dashed border-[#2a2a2a] flex items-center justify-center flex-shrink-0">
+                    <ImageIcon className="w-6 h-6 text-gray-600" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) handleImageUpload(file)
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full bg-[#0b0b0b] border-[#2a2a2a] text-gray-300 hover:text-white hover:border-[#59ff00]/50"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mr-2" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Image
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-gray-600 text-[10px] mt-1">JPG, PNG, WebP, GIF (max 5MB)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-sm">Short Description</Label>
+              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="Brief product description" value={productForm.shortDescription} onChange={(e) => setProductForm(p => ({ ...p, shortDescription: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-gray-300 text-sm">Description *</Label>
@@ -1214,10 +1880,105 @@ export default function AdminDashboard() {
                 <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={productForm.capacity} onChange={(e) => setProductForm(p => ({ ...p, capacity: e.target.value }))} />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Dimensions</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="e.g. 600x400x850mm" value={productForm.dimensions} onChange={(e) => setProductForm(p => ({ ...p, dimensions: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">MOQ</Label>
+                <Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="Minimum order qty" value={productForm.moq} onChange={(e) => setProductForm(p => ({ ...p, moq: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Lead Time</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="e.g. 2-3 weeks" value={productForm.leadTime} onChange={(e) => setProductForm(p => ({ ...p, leadTime: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5 flex items-end">
+                <div className="flex items-center gap-2 pb-1">
+                  <Switch
+                    checked={productForm.featured}
+                    onCheckedChange={(checked) => setProductForm(p => ({ ...p, featured: checked }))}
+                  />
+                  <Label className="text-gray-300 text-sm">Featured</Label>
+                </div>
+              </div>
+            </div>
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setProductDialog(false)} className="text-gray-400 hover:text-white">Cancel</Button>
             <Button onClick={handleSaveProduct} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">{editProduct ? 'Update' : 'Create'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Dialog */}
+      <Dialog open={categoryDialog} onOpenChange={setCategoryDialog}>
+        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">{editCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
+            <DialogDescription className="text-gray-400">Fill in the category details below.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-sm">Name *</Label>
+              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="Category name" value={categoryForm.name} onChange={(e) => setCategoryForm(p => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-sm">Slug</Label>
+              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="auto-generated from name" value={categoryForm.slug} onChange={(e) => setCategoryForm(p => ({ ...p, slug: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-sm">Image URL</Label>
+              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="/uploads/image.jpg" value={categoryForm.image} onChange={(e) => setCategoryForm(p => ({ ...p, image: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-sm">Parent Category</Label>
+              <Select value={categoryForm.parentId} onValueChange={(v) => setCategoryForm(p => ({ ...p, parentId: v }))}>
+                <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue placeholder="None (Top Level)" /></SelectTrigger>
+                <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                  <SelectItem value="none" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">None (Top Level)</SelectItem>
+                  {categories
+                    .filter((c: any) => c.id !== editCategory?.id)
+                    .map((c: any) => (
+                      <SelectItem key={c.id} value={c.id} className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">{c.name}</SelectItem>
+                    ))
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setCategoryDialog(false)} className="text-gray-400 hover:text-white">Cancel</Button>
+            <Button onClick={handleSaveCategory} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">{editCategory ? 'Update' : 'Create'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Category Confirmation Dialog */}
+      <Dialog open={deleteCategoryDialog} onOpenChange={setDeleteCategoryDialog}>
+        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-white">Delete Category</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Are you sure you want to delete &quot;{categoryToDelete?.name}&quot;? This action cannot be undone.
+              {(categoryToDelete?._count?.products || 0) > 0 && (
+                <span className="block mt-2 text-red-400 text-xs">
+                  This category has {categoryToDelete._count.products} product(s). Remove or reassign them first.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setDeleteCategoryDialog(false); setCategoryToDelete(null) }} className="text-gray-400 hover:text-white">Cancel</Button>
+            <Button
+              onClick={() => categoryToDelete && handleDeleteCategory(categoryToDelete.id)}
+              className="bg-red-500 text-white hover:bg-red-600 font-semibold"
+              disabled={(categoryToDelete?._count?.products || 0) > 0}
+            >
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1408,20 +2169,18 @@ export default function AdminDashboard() {
             <DialogDescription className="text-gray-400">Enter employee details</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Name *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.name} onChange={(e) => setEmployeeForm(p => ({ ...p, name: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Name *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.name} onChange={(e) => setEmployeeForm(p => ({ ...p, name: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Email *</Label><Input type="email" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.email} onChange={(e) => setEmployeeForm(p => ({ ...p, email: e.target.value }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Phone</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.phone} onChange={(e) => setEmployeeForm(p => ({ ...p, phone: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Password</Label><Input type="password" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.password} onChange={(e) => setEmployeeForm(p => ({ ...p, password: e.target.value }))} placeholder="Default: employee123" /></div>
+            </div>
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Password *</Label><Input type="password" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.password} onChange={(e) => setEmployeeForm(p => ({ ...p, password: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Department</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.department} onChange={(e) => setEmployeeForm(p => ({ ...p, department: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Designation</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.designation} onChange={(e) => setEmployeeForm(p => ({ ...p, designation: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Department *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.department} onChange={(e) => setEmployeeForm(p => ({ ...p, department: e.target.value }))} placeholder="e.g. Sales, Engineering" /></div>
-              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Designation *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.designation} onChange={(e) => setEmployeeForm(p => ({ ...p, designation: e.target.value }))} placeholder="e.g. Sales Manager" /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Salary (₹) *</Label><Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.salary} onChange={(e) => setEmployeeForm(p => ({ ...p, salary: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Salary</Label><Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.salary} onChange={(e) => setEmployeeForm(p => ({ ...p, salary: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Joining Date</Label><Input type="date" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={employeeForm.joiningDate} onChange={(e) => setEmployeeForm(p => ({ ...p, joiningDate: e.target.value }))} /></div>
             </div>
           </div>
@@ -1432,7 +2191,7 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* AMC Contract Dialog */}
+      {/* AMC Dialog */}
       <Dialog open={amcDialog} onOpenChange={setAmcDialog}>
         <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1440,13 +2199,16 @@ export default function AdminDashboard() {
             <DialogDescription className="text-gray-400">Enter contract details</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Plan *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.plan} onChange={(e) => setAmcForm(p => ({ ...p, plan: e.target.value }))} placeholder="e.g. Premium, Standard" /></div>
-            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Amount (₹) *</Label><Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.amount} onChange={(e) => setAmcForm(p => ({ ...p, amount: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Customer ID *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.customerId} onChange={(e) => setAmcForm(p => ({ ...p, customerId: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Plan</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.plan} onChange={(e) => setAmcForm(p => ({ ...p, plan: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Start Date *</Label><Input type="date" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.startDate} onChange={(e) => setAmcForm(p => ({ ...p, startDate: e.target.value }))} /></div>
-              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">End Date *</Label><Input type="date" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.endDate} onChange={(e) => setAmcForm(p => ({ ...p, endDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Start Date</Label><Input type="date" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.startDate} onChange={(e) => setAmcForm(p => ({ ...p, startDate: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">End Date</Label><Input type="date" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.endDate} onChange={(e) => setAmcForm(p => ({ ...p, endDate: e.target.value }))} /></div>
             </div>
-            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Coverage</Label><Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={2} value={amcForm.coverage} onChange={(e) => setAmcForm(p => ({ ...p, coverage: e.target.value }))} placeholder="List covered items..." /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Amount</Label><Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.amount} onChange={(e) => setAmcForm(p => ({ ...p, amount: e.target.value }))} /></div>
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Coverage</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={amcForm.coverage} onChange={(e) => setAmcForm(p => ({ ...p, coverage: e.target.value }))} /></div>
+            </div>
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setAmcDialog(false)} className="text-gray-400 hover:text-white">Cancel</Button>
@@ -1463,7 +2225,9 @@ export default function AdminDashboard() {
             <DialogDescription className="text-gray-400">Enter service request details</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Issue *</Label><Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={3} value={serviceForm.issue} onChange={(e) => setServiceForm(p => ({ ...p, issue: e.target.value }))} placeholder="Describe the issue..." /></div>
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Customer ID *</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={serviceForm.customerId} onChange={(e) => setServiceForm(p => ({ ...p, customerId: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Contract ID</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={serviceForm.contractId} onChange={(e) => setServiceForm(p => ({ ...p, contractId: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Issue *</Label><Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={3} value={serviceForm.issue} onChange={(e) => setServiceForm(p => ({ ...p, issue: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-gray-300 text-sm">Priority</Label>
@@ -1477,17 +2241,7 @@ export default function AdminDashboard() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-gray-300 text-sm">Assign Technician</Label>
-                <Select value={serviceForm.assignedTechnician} onValueChange={(v) => setServiceForm(p => ({ ...p, assignedTechnician: v }))}>
-                  <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent className="bg-[#181818] border-[#2a2a2a]">
-                    {employees.map((e: any) => (
-                      <SelectItem key={e.id} value={e.userId} className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">{e.user?.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Assigned Technician</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={serviceForm.assignedTechnician} onChange={(e) => setServiceForm(p => ({ ...p, assignedTechnician: e.target.value }))} /></div>
             </div>
           </div>
           <DialogFooter className="mt-4">
@@ -1496,14 +2250,6 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Global custom scrollbar styles */}
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #0b0b0b; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
-      `}</style>
     </div>
   )
 }
