@@ -78,6 +78,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "better-sqlite3": "^12.10.0",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
     "prisma": "^6.11.1",

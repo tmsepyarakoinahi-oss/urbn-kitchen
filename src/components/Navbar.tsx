@@ -48,6 +48,17 @@ export default function Navbar() {
     setLocalSearch('')
   }
 
+  const handleProfileClick = () => {
+    const roleName = (user?.role?.roleName || user?.roleName || 'customer').toLowerCase()
+    if (roleName === 'admin' || roleName === 'manager') {
+      setView('admin')
+    } else if (roleName === 'employee') {
+      setView('employee-portal')
+    } else {
+      setView('customer-portal')
+    }
+  }
+
   return (
     <>
       <motion.nav
@@ -161,7 +172,7 @@ export default function Navbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setView('customer-portal')}
+                  onClick={handleProfileClick}
                   className="text-gray-400 hover:text-[#59ff00] hover:bg-[#59ff00]/10 hidden md:flex"
                 >
                   <div className="w-7 h-7 rounded-full bg-[#59ff00]/20 border border-[#59ff00]/40 flex items-center justify-center">
@@ -243,11 +254,11 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <button
-                onClick={() => { setView('customer-portal'); toggleMobileMenu(); }}
+                onClick={() => { handleProfileClick(); toggleMobileMenu(); }}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:text-white hover:bg-[#151515] text-sm font-medium"
               >
                 <User className="w-4 h-4" />
-                My Account
+                {(() => { const r = (user?.role?.roleName || user?.roleName || 'customer').toLowerCase(); return r === 'admin' || r === 'manager' ? 'Admin Panel' : r === 'employee' ? 'Employee Portal' : 'My Account' })()}
               </button>
             ) : (
               <Button

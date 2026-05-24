@@ -44,10 +44,10 @@ function LoginForm() {
         setUser(data.data)
         toast.success(`Welcome back, ${data.data.name}!`)
         // Route based on role
-        const role = data.data.role?.roleName || data.data.roleName
-        if (role === 'admin' || role === 'manager') {
+        const roleName = (data.data.role?.roleName || data.data.roleName || 'customer').toLowerCase()
+        if (roleName === 'admin' || roleName === 'manager') {
           setView('admin')
-        } else if (role === 'employee') {
+        } else if (roleName === 'employee') {
           setView('employee-portal')
         } else {
           setView('home')
