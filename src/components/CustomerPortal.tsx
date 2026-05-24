@@ -67,6 +67,21 @@ export default function CustomerPortal() {
   const [serviceDialog, setServiceDialog] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  // Redirect admin/manager/employee users to their correct portal
+  useEffect(() => {
+    if (user) {
+      const roleName = (user.role?.roleName || user.roleName || 'customer').toLowerCase()
+      if (roleName === 'admin' || roleName === 'manager') {
+        setView('admin')
+        return
+      }
+      if (roleName === 'employee') {
+        setView('employee-portal')
+        return
+      }
+    }
+  }, [user, setView])
+
   // Fetch orders for this customer
   const fetchOrders = useCallback(async (userId: string) => {
     if (!userId) return
