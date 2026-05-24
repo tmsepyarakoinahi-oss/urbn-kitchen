@@ -598,6 +598,18 @@ export default function AdminDashboard() {
 
   const handleSaveQuotation = async () => {
     try {
+      // Validate required fields
+      const custName = quotationCustomerName || selectedLead?.name || ''
+      if (!custName) {
+        toast.error('Customer name is required')
+        return
+      }
+      const hasValidItems = quotationItems.some(item => item.desc && item.rate)
+      if (!hasValidItems) {
+        toast.error('Add at least one item with description and rate')
+        return
+      }
+
       const totals = computeQuotationTotals()
       const itemsWithAmount = quotationItems.map(item => {
         const qty = parseFloat(item.qty) || 0

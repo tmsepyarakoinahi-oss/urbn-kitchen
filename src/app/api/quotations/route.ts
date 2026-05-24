@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
 
     const quotation = await db.quotation.create({
       data: {
-        leadId: leadId!,
+        leadId: leadId || null,
         quotationNumber,
         amount,
         customerName,

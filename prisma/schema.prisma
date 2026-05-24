@@ -191,8 +191,8 @@ model Lead {
 
 model Quotation {
   id              String   @id @default(cuid())
-  leadId          String
-  lead            Lead     @relation(fields: [leadId], references: [id])
+  leadId          String?
+  lead            Lead?    @relation(fields: [leadId], references: [id])
   quotationNumber String   @unique
   amount          Float
 

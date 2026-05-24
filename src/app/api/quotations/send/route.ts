@@ -117,7 +117,7 @@ function generateQuotationEmailHtml(
     warranty?: string | null
     createdAt: Date
   },
-  lead: { name: string; company?: string | null; phone?: string | null; email?: string | null; city?: string | null },
+  lead: { name: string; company?: string | null; phone?: string | null; email?: string | null; city?: string | null } | null,
   settings: Record<string, string>
 ) {
   const items = parseItems(quotation.items)
@@ -540,17 +540,19 @@ export async function POST(request: NextRequest) {
       result.whatsappUrl = waUrl
     }
 
-    // ── Update lead status ──────────────────────────────────────────────
-    const leadStatusOrder = ['new', 'contacted', 'quotation_sent', 'negotiation', 'won', 'lost']
-    const currentLeadStatus = quotation.lead.status || 'new'
-    const currentIndex = leadStatusOrder.indexOf(currentLeadStatus)
-    const targetIndex = leadStatusOrder.indexOf('quotation_sent')
+    // ── Update lead status (only if quotation has a lead) ──────────────
+    if (quotation.leadId && quotation.lead) {
+      const leadStatusOrder = ['new', 'contacted', 'quotation_sent', 'negotiation', 'won', 'lost']
+      const currentLeadStatus = quotation.lead.status || 'new'
+      const currentIndex = leadStatusOrder.indexOf(currentLeadStatus)
+      const targetIndex = leadStatusOrder.indexOf('quotation_sent')
 
-    if (currentIndex < targetIndex) {
-      await db.lead.update({
-        where: { id: quotation.leadId },
-        data: { status: 'quotation_sent' },
-      })
+      if (currentIndex < targetIndex) {
+        await db.lead.update({
+          where: { id: quotation.leadId },
+          data: { status: 'quotation_sent' },
+        })
+      }
     }
 
     // ── Return response ─────────────────────────────────────────────────
