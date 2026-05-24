@@ -1416,10 +1416,13 @@ export default function AdminDashboard() {
 
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-white text-xl font-bold">Quotations</h2>
-          <Button onClick={openNewQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
-            <Plus className="w-4 h-4 mr-2" /> New Quotation
+        <div className="flex items-center justify-between sticky top-0 z-10 bg-[#0b0b0b] pb-2">
+          <div>
+            <h2 className="text-white text-xl font-bold">Quotations</h2>
+            <p className="text-gray-500 text-xs mt-0.5">Create and manage quotations for your customers</p>
+          </div>
+          <Button onClick={openNewQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold shadow-[0_0_20px_rgba(89,255,0,0.3)]">
+            <Plus className="w-4 h-4 mr-2" /> Create Quotation
           </Button>
         </div>
         <Card className="bg-[#181818] border-[#2a2a2a]">
@@ -1479,7 +1482,7 @@ export default function AdminDashboard() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {quotationList.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No quotations found. Create one from a lead or click &quot;New Quotation&quot;.</TableCell></TableRow>}
+                  {quotationList.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No quotations found. Click the &quot;Create Quotation&quot; button above to get started.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </div>

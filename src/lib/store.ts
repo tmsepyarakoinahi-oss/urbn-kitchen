@@ -103,21 +103,87 @@ export interface CartItem {
   variantSku?: string | null     // variant SKU
 }
 
+// ─── localStorage persistence helpers ─────────────────────────────
+const STORAGE_KEY = 'urban-kitchen-auth'
+const CART_KEY = 'urban-kitchen-cart'
+
+function loadPersistedAuth(): { user: any | null; isAuthenticated: boolean; currentView: AppView } {
+  if (typeof window === 'undefined') {
+    return { user: null, isAuthenticated: false, currentView: 'home' }
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) {
+      const data = JSON.parse(raw)
+      if (data && data.user) {
+        return {
+          user: data.user,
+          isAuthenticated: true,
+          currentView: data.currentView || 'home',
+        }
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return { user: null, isAuthenticated: false, currentView: 'home' }
+}
+
+function persistAuth(user: any | null, currentView: AppView) {
+  if (typeof window === 'undefined') return
+  try {
+    if (user) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, currentView }))
+    } else {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function loadPersistedCart(): { cartItems: CartItem[]; cartCount: number } {
+  if (typeof window === 'undefined') return { cartItems: [], cartCount: 0 }
+  try {
+    const raw = localStorage.getItem(CART_KEY)
+    if (raw) {
+      const items: CartItem[] = JSON.parse(raw)
+      return { cartItems: items, cartCount: items.reduce((sum, i) => sum + i.qty, 0) }
+    }
+  } catch {
+    // Ignore
+  }
+  return { cartItems: [], cartCount: 0 }
+}
+
+function persistCart(items: CartItem[]) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(CART_KEY, JSON.stringify(items))
+  } catch {
+    // Ignore
+  }
+}
+
+// Load persisted state
+const persistedAuth = loadPersistedAuth()
+const persistedCart = loadPersistedCart()
+
 export const useAppStore = create<AppState>((set, get) => ({
   // Navigation
-  currentView: 'home',
+  currentView: persistedAuth.currentView,
   selectedProductId: null,
   adminTab: 'dashboard',
   customerTab: 'orders',
   employeeTab: 'dashboard',
   
-  // Auth
-  user: null,
-  isAuthenticated: false,
+  // Auth (persisted)
+  user: persistedAuth.user,
+  isAuthenticated: persistedAuth.isAuthenticated,
   
-  // Cart
-  cartItems: [],
-  cartCount: 0,
+  // Cart (persisted)
+  cartItems: persistedCart.cartItems,
+  cartCount: persistedCart.cartCount,
   
   // UI
   searchQuery: '',
@@ -128,13 +194,24 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastOrder: null,
   
   // Actions
-  setView: (view) => set({ currentView: view, showMobileMenu: false }),
+  setView: (view) => {
+    set({ currentView: view, showMobileMenu: false })
+    persistAuth(get().user, view)
+  },
   setAdminTab: (tab) => set({ adminTab: tab }),
   setCustomerTab: (tab) => set({ customerTab: tab }),
   setEmployeeTab: (tab) => set({ employeeTab: tab }),
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setUser: (user) => {
+    const state = get()
+    const newView = user ? state.currentView : 'home'
+    set({ user, isAuthenticated: !!user, currentView: newView })
+    persistAuth(user, newView)
+  },
   
-  setCartItems: (items) => set({ cartItems: items, cartCount: items.reduce((sum, i) => sum + i.qty, 0) }),
+  setCartItems: (items) => {
+    set({ cartItems: items, cartCount: items.reduce((sum, i) => sum + i.qty, 0) })
+    persistCart(items)
+  },
   
   addToCart: (item) => {
     const { cartItems } = get()
@@ -155,6 +232,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       newItems = [...cartItems, item]
     }
     set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
+    persistCart(newItems)
   },
   
   removeFromCart: (productId, variantId) => {
@@ -171,6 +249,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       newItems = cartItems.filter(i => i.productId !== productId)
     }
     set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
+    persistCart(newItems)
   },
   
   updateCartQty: (productId, qty, variantId) => {
@@ -182,13 +261,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (qty <= 0) {
       const newItems = cartItems.filter(i => !isMatch(i))
       set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
+      persistCart(newItems)
     } else {
       const newItems = cartItems.map(i => isMatch(i) ? { ...i, qty } : i)
       set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
+      persistCart(newItems)
     }
   },
   
-  clearCart: () => set({ cartItems: [], cartCount: 0 }),
+  clearCart: () => {
+    set({ cartItems: [], cartCount: 0 })
+    persistCart([])
+  },
   setSearchQuery: (query) => set({ searchQuery: query }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   toggleMobileMenu: () => set((s) => ({ showMobileMenu: !s.showMobileMenu })),
