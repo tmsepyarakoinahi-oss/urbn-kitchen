@@ -9,7 +9,7 @@ import {
   ChevronDown, IndianRupee, TrendingUp, AlertTriangle, Clock,
   Phone, Mail, MapPin, Building2, FileText, Wrench, X,
   ChevronLeft, ChevronRight, Grid3X3, UserCircle, CalendarDays,
-  MessageSquare, Activity, Upload, ImageIcon, Check
+  MessageSquare, Activity, Upload, ImageIcon, Check, MoreVertical, Send
 } from 'lucide-react'
 import { useAppStore, type AdminTab } from '@/lib/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import {
@@ -242,6 +243,7 @@ export default function AdminDashboard() {
   const [leadDetailDialog, setLeadDetailDialog] = useState(false)
   const [selectedLead, setSelectedLead] = useState<any>(null)
   const [quotationDialog, setQuotationDialog] = useState(false)
+  const [editQuotation, setEditQuotation] = useState<any>(null)
   const [employeeDialog, setEmployeeDialog] = useState(false)
   const [amcDialog, setAmcDialog] = useState(false)
   const [serviceDialog, setServiceDialog] = useState(false)
@@ -622,57 +624,70 @@ export default function AdminDashboard() {
         const gstAmt = afterDisc * gstPercent / 100
         return { ...item, amount: afterDisc + gstAmt }
       })
-      const res = await fetch('/api/quotations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadId: selectedLead?.id,
-          customerName: quotationCustomerName || selectedLead?.name || '',
-          customerCompany: quotationCustomerCompany || selectedLead?.company || '',
-          customerEmail: quotationCustomerEmail || selectedLead?.email || '',
-          customerPhone: quotationCustomerPhone || selectedLead?.phone || '',
-          customerAddress: quotationCustomerAddress || (selectedLead?.city ? `${selectedLead.city}, India` : ''),
-          customerGst: quotationCustomerGst,
-          amount: totals.grandTotal,
-          subtotal: totals.subtotal,
-          discountAmount: totals.totalDiscount,
-          cgstAmount: totals.cgst,
-          sgstAmount: totals.sgst,
-          totalGst: totals.totalGst,
-          items: JSON.stringify(itemsWithAmount),
-          notes: quotationNotes,
-          terms: JSON.stringify([
-            'Prices are exclusive of freight & insurance charges unless stated otherwise.',
-            'GST @18% applicable as per government norms.',
-            '50% advance payment with order, balance before dispatch.',
-            'Delivery subject to confirmation at the time of order.',
-            'Goods once sold will not be taken back.',
-            'Subject to Delhi jurisdiction.',
-            'This quotation is valid for 30 days from the date of issue.',
-          ]),
-          bankDetails: JSON.stringify({
-            bankName: 'HDFC Bank',
-            accountName: 'Urban Kitchen Manufacturing & Solutions',
-            accountNo: '50100XXXXX1234',
-            ifsc: 'HDFC0001234',
-            branch: 'Sector 12, Industrial Area, New Delhi',
-          }),
-          validUntil: quotationValidUntil || null,
-          deliveryPeriod: quotationDeliveryPeriod,
-          installation: quotationInstallation,
-          warranty: quotationWarranty,
+
+      const payload = {
+        leadId: selectedLead?.id || (editQuotation?.leadId ?? null),
+        customerName: quotationCustomerName || selectedLead?.name || '',
+        customerCompany: quotationCustomerCompany || selectedLead?.company || '',
+        customerEmail: quotationCustomerEmail || selectedLead?.email || '',
+        customerPhone: quotationCustomerPhone || selectedLead?.phone || '',
+        customerAddress: quotationCustomerAddress || (selectedLead?.city ? `${selectedLead.city}, India` : ''),
+        customerGst: quotationCustomerGst,
+        amount: totals.grandTotal,
+        subtotal: totals.subtotal,
+        discountAmount: totals.totalDiscount,
+        cgstAmount: totals.cgst,
+        sgstAmount: totals.sgst,
+        totalGst: totals.totalGst,
+        items: JSON.stringify(itemsWithAmount),
+        notes: quotationNotes,
+        terms: JSON.stringify([
+          'Prices are exclusive of freight & insurance charges unless stated otherwise.',
+          'GST @18% applicable as per government norms.',
+          '50% advance payment with order, balance before dispatch.',
+          'Delivery subject to confirmation at the time of order.',
+          'Goods once sold will not be taken back.',
+          'Subject to Delhi jurisdiction.',
+          'This quotation is valid for 30 days from the date of issue.',
+        ]),
+        bankDetails: JSON.stringify({
+          bankName: 'HDFC Bank',
+          accountName: 'Urban Kitchen Manufacturing & Solutions',
+          accountNo: '50100XXXXX1234',
+          ifsc: 'HDFC0001234',
+          branch: 'Sector 12, Industrial Area, New Delhi',
         }),
-      })
+        validUntil: quotationValidUntil || null,
+        deliveryPeriod: quotationDeliveryPeriod,
+        installation: quotationInstallation,
+        warranty: quotationWarranty,
+      }
+
+      let res: Response
+      if (editQuotation) {
+        res = await fetch(`/api/quotations/${editQuotation.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        res = await fetch('/api/quotations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      }
       const json = await res.json()
       if (json.status) {
         setQuotationDialog(false)
+        setEditQuotation(null)
         doFetchLeads()
         if (adminTab === 'quotations') fetch('/api/quotations?limit=50').then(r => r.json()).then(j => { if (j.status) setQuotationList(j.data.quotations || j.data || []) }).catch(console.error)
-        toast.success('Quotation created successfully')
+        toast.success(editQuotation ? 'Quotation updated successfully' : 'Quotation created successfully')
       } else {
-        toast.error(json.message || 'Failed to create quotation')
+        toast.error(json.message || (editQuotation ? 'Failed to update quotation' : 'Failed to create quotation'))
       }
-    } catch (e) { console.error(e); toast.error('Failed to create quotation') }
+    } catch (e) { console.error(e); toast.error(editQuotation ? 'Failed to update quotation' : 'Failed to create quotation') }
   }
 
   const handleSaveEmployee = async () => {
@@ -794,6 +809,7 @@ export default function AdminDashboard() {
 
   const openNewQuotation = () => {
     setSelectedLead(null)
+    setEditQuotation(null)
     setQuotationCustomerName('')
     setQuotationCustomerCompany('')
     setQuotationCustomerEmail('')
@@ -808,6 +824,33 @@ export default function AdminDashboard() {
     setQuotationInstallation('Included')
     setQuotationWarranty('12 months against manufacturing defects')
     setQuotationDialog(true)
+  }
+
+  const openEditQuotation = async (q: any) => {
+    try {
+      const res = await fetch(`/api/quotations/${q.id}`)
+      const json = await res.json()
+      if (!json.status) { toast.error('Failed to load quotation'); return }
+      const data = json.data
+      setEditQuotation(data)
+      setQuotationCustomerName(data.customerName || '')
+      setQuotationCustomerCompany(data.customerCompany || '')
+      setQuotationCustomerEmail(data.customerEmail || '')
+      setQuotationCustomerPhone(data.customerPhone || '')
+      setQuotationCustomerAddress(data.customerAddress || '')
+      setQuotationCustomerGst(data.customerGst || '')
+      const parsedItems = data.items ? (typeof data.items === 'string' ? JSON.parse(data.items) : data.items) : []
+      setQuotationItems(parsedItems.length > 0 ? parsedItems.map((it: any) => ({
+        desc: it.desc || '', hsn: it.hsn || '', qty: String(it.qty || '1'), unit: it.unit || 'Nos',
+        rate: String(it.rate || ''), discount: String(it.discount || '0'), gstPercent: String(it.gstPercent || '18'),
+      })) : [{ desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }])
+      setQuotationValidUntil(data.validUntil ? data.validUntil.split('T')[0] : '')
+      setQuotationNotes(data.notes || '')
+      setQuotationDeliveryPeriod(data.deliveryPeriod || '')
+      setQuotationInstallation(data.installation || '')
+      setQuotationWarranty(data.warranty || '')
+      setQuotationDialog(true)
+    } catch (e) { console.error(e); toast.error('Failed to load quotation') }
   }
 
   const openOrderDetail = (order: any) => {
@@ -1416,12 +1459,12 @@ export default function AdminDashboard() {
 
     return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-        <div className="flex items-center justify-between sticky top-0 z-10 bg-[#0b0b0b] pb-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sticky top-0 z-10 bg-[#0b0b0b] pb-2">
           <div>
             <h2 className="text-white text-xl font-bold">Quotations</h2>
             <p className="text-gray-500 text-xs mt-0.5">Create and manage quotations for your customers</p>
           </div>
-          <Button onClick={openNewQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold shadow-[0_0_20px_rgba(89,255,0,0.3)]">
+          <Button onClick={openNewQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold shadow-[0_0_20px_rgba(89,255,0,0.3)] w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" /> Create Quotation
           </Button>
         </div>
@@ -1472,13 +1515,38 @@ export default function AdminDashboard() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openQuotationDetail(q)} className="text-gray-400 hover:text-[#59ff00] h-7 w-7 p-0"><Eye className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleGeneratePdf(q.id)} className="text-gray-400 hover:text-blue-400 h-7 w-7 p-0"><FileText className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleSendQuotation(q.id, 'email')} className="text-gray-400 hover:text-purple-400 h-7 w-7 p-0" title="Send via Email"><Mail className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleSendQuotation(q.id, 'whatsapp')} className="text-gray-400 hover:text-green-400 h-7 w-7 p-0" title="Send via WhatsApp"><MessageSquare className="w-3.5 h-3.5" /></Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteQuotation(q.id)} className="text-gray-400 hover:text-red-400 h-7 w-7 p-0"><Trash2 className="w-3.5 h-3.5" /></Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-8 w-8 p-0 hover:bg-white/10">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white min-w-[200px]">
+                            <DropdownMenuItem className="text-gray-300 focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => openQuotationDetail(q)}>
+                              <Eye className="w-4 h-4 mr-2" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-gray-300 focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => openEditQuotation(q)}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit Quotation
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-gray-300 focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => handleGeneratePdf(q.id)}>
+                              <FileText className="w-4 h-4 mr-2" /> Download PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-[#2a2a2a]" />
+                            <DropdownMenuItem className="text-blue-400 focus:text-blue-300 focus:bg-blue-500/10 cursor-pointer" onClick={() => handleSendQuotation(q.id, 'email')}>
+                              <Mail className="w-4 h-4 mr-2" /> Send via Email
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-green-400 focus:text-green-300 focus:bg-green-500/10 cursor-pointer" onClick={() => handleSendQuotation(q.id, 'whatsapp')}>
+                              <MessageSquare className="w-4 h-4 mr-2" /> Send via WhatsApp
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-[#59ff00] focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => handleSendQuotation(q.id, 'both')}>
+                              <Send className="w-4 h-4 mr-2" /> Send via Both
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-[#2a2a2a]" />
+                            <DropdownMenuItem className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer" onClick={() => handleDeleteQuotation(q.id)}>
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1564,7 +1632,10 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 pt-2 border-t border-[#2a2a2a]">
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#2a2a2a]">
+                  <Button onClick={() => openEditQuotation(selectedQuotation)} variant="outline" className="border-[#59ff00]/50 text-[#59ff00] hover:bg-[#59ff00]/10">
+                    <Edit className="w-4 h-4 mr-2" /> Edit
+                  </Button>
                   <Button onClick={() => handleGeneratePdf(selectedQuotation.id)} variant="outline" className="border-[#2a2a2a] text-gray-300 hover:text-white">
                     <FileText className="w-4 h-4 mr-2" /> Download PDF
                   </Button>
@@ -1575,7 +1646,7 @@ export default function AdminDashboard() {
                     <MessageSquare className="w-4 h-4 mr-2" /> WhatsApp
                   </Button>
                   <Button onClick={() => handleSendQuotation(selectedQuotation.id, 'both')} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90" disabled={sendingQuotation}>
-                    Send Both
+                    <Send className="w-4 h-4 mr-2" /> Send Both
                   </Button>
                 </div>
               </div>
@@ -2781,8 +2852,8 @@ export default function AdminDashboard() {
       <Dialog open={quotationDialog} onOpenChange={setQuotationDialog}>
         <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-white">Create Quotation</DialogTitle>
-            <DialogDescription className="text-gray-400">{selectedLead ? `For ${selectedLead.name}` : 'Fill in the details below'}</DialogDescription>
+            <DialogTitle className="text-white">{editQuotation ? 'Edit Quotation' : 'Create Quotation'}</DialogTitle>
+            <DialogDescription className="text-gray-400">{editQuotation ? `Editing ${editQuotation.quotationNumber}` : (selectedLead ? `For ${selectedLead.name}` : 'Fill in the details below')}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Customer Details */}
@@ -2862,7 +2933,7 @@ export default function AdminDashboard() {
           <DialogFooter className="mt-4 gap-2">
             <Button variant="ghost" onClick={() => setQuotationDialog(false)} className="text-gray-400 hover:text-white">Cancel</Button>
             <Button onClick={handleSaveQuotation} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
-              <FileText className="w-4 h-4 mr-2" /> Create Quotation
+              {editQuotation ? <><Edit className="w-4 h-4 mr-2" /> Update Quotation</> : <><FileText className="w-4 h-4 mr-2" /> Create Quotation</>}
             </Button>
           </DialogFooter>
         </DialogContent>

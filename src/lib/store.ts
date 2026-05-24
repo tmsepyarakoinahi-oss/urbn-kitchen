@@ -107,9 +107,9 @@ export interface CartItem {
 const STORAGE_KEY = 'urban-kitchen-auth'
 const CART_KEY = 'urban-kitchen-cart'
 
-function loadPersistedAuth(): { user: any | null; isAuthenticated: boolean; currentView: AppView } {
+function loadPersistedAuth(): { user: any | null; isAuthenticated: boolean; currentView: AppView; adminTab: AdminTab } {
   if (typeof window === 'undefined') {
-    return { user: null, isAuthenticated: false, currentView: 'home' }
+    return { user: null, isAuthenticated: false, currentView: 'home', adminTab: 'dashboard' }
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -120,20 +120,21 @@ function loadPersistedAuth(): { user: any | null; isAuthenticated: boolean; curr
           user: data.user,
           isAuthenticated: true,
           currentView: data.currentView || 'home',
+          adminTab: data.adminTab || 'dashboard',
         }
       }
     }
   } catch {
     // Ignore parse errors
   }
-  return { user: null, isAuthenticated: false, currentView: 'home' }
+  return { user: null, isAuthenticated: false, currentView: 'home', adminTab: 'dashboard' }
 }
 
-function persistAuth(user: any | null, currentView: AppView) {
+function persistAuth(user: any | null, currentView: AppView, adminTab?: AdminTab) {
   if (typeof window === 'undefined') return
   try {
     if (user) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, currentView }))
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, currentView, adminTab }))
     } else {
       localStorage.removeItem(STORAGE_KEY)
     }
@@ -173,7 +174,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Navigation
   currentView: persistedAuth.currentView,
   selectedProductId: null,
-  adminTab: 'dashboard',
+  adminTab: persistedAuth.adminTab,
   customerTab: 'orders',
   employeeTab: 'dashboard',
   
@@ -196,16 +197,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Actions
   setView: (view) => {
     set({ currentView: view, showMobileMenu: false })
-    persistAuth(get().user, view)
+    persistAuth(get().user, view, get().adminTab)
   },
-  setAdminTab: (tab) => set({ adminTab: tab }),
+  setAdminTab: (tab) => {
+    set({ adminTab: tab })
+    persistAuth(get().user, get().currentView, tab)
+  },
   setCustomerTab: (tab) => set({ customerTab: tab }),
   setEmployeeTab: (tab) => set({ employeeTab: tab }),
   setUser: (user) => {
     const state = get()
     const newView = user ? state.currentView : 'home'
     set({ user, isAuthenticated: !!user, currentView: newView })
-    persistAuth(user, newView)
+    persistAuth(user, newView, state.adminTab)
   },
   
   setCartItems: (items) => {
