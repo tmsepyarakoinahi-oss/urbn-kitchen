@@ -9,7 +9,7 @@ import {
   ChevronDown, IndianRupee, TrendingUp, AlertTriangle, Clock,
   Phone, Mail, MapPin, Building2, FileText, Wrench, X,
   ChevronLeft, ChevronRight, Grid3X3, UserCircle, CalendarDays,
-  MessageSquare, Activity, Upload, ImageIcon, Check, MoreVertical, Send
+  MessageSquare, Activity, Upload, ImageIcon, Check, Send
 } from 'lucide-react'
 import { useAppStore, type AdminTab } from '@/lib/store'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -31,7 +31,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
+
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import {
@@ -1468,7 +1468,7 @@ export default function AdminDashboard() {
             <Plus className="w-4 h-4 mr-2" /> Create Quotation
           </Button>
         </div>
-        <Card className="bg-[#181818] border-[#2a2a2a]">
+        <Card className="bg-[#181818] border-[#2a2a2a] hidden lg:block">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
@@ -1510,43 +1510,19 @@ export default function AdminDashboard() {
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           {q.emailSent && <Badge className="text-[9px] bg-blue-500/20 text-blue-400 border-blue-500/30">Email</Badge>}
-                          {q.whatsappSent && <Badge className="text-[9px] bg-green-500/20 text-green-400 border-green-500/30">WhatsApp</Badge>}
+                          {q.whatsappSent && <Badge className="text-[9px] bg-green-500/20 text-green-400 border-green-500/30">WA</Badge>}
                           {!q.emailSent && !q.whatsappSent && <span className="text-gray-600 text-xs">—</span>}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white h-8 w-8 p-0 hover:bg-white/10">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white min-w-[200px]">
-                            <DropdownMenuItem className="text-gray-300 focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => openQuotationDetail(q)}>
-                              <Eye className="w-4 h-4 mr-2" /> View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-gray-300 focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => openEditQuotation(q)}>
-                              <Edit className="w-4 h-4 mr-2" /> Edit Quotation
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-gray-300 focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => handleGeneratePdf(q.id)}>
-                              <FileText className="w-4 h-4 mr-2" /> Download PDF
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-[#2a2a2a]" />
-                            <DropdownMenuItem className="text-blue-400 focus:text-blue-300 focus:bg-blue-500/10 cursor-pointer" onClick={() => handleSendQuotation(q.id, 'email')}>
-                              <Mail className="w-4 h-4 mr-2" /> Send via Email
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-green-400 focus:text-green-300 focus:bg-green-500/10 cursor-pointer" onClick={() => handleSendQuotation(q.id, 'whatsapp')}>
-                              <MessageSquare className="w-4 h-4 mr-2" /> Send via WhatsApp
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-[#59ff00] focus:text-[#59ff00] focus:bg-[#59ff00]/10 cursor-pointer" onClick={() => handleSendQuotation(q.id, 'both')}>
-                              <Send className="w-4 h-4 mr-2" /> Send via Both
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-[#2a2a2a]" />
-                            <DropdownMenuItem className="text-red-400 focus:text-red-300 focus:bg-red-500/10 cursor-pointer" onClick={() => handleDeleteQuotation(q.id)}>
-                              <Trash2 className="w-4 h-4 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openQuotationDetail(q)} className="text-gray-400 hover:text-[#59ff00] h-7 w-7 p-0" title="View"><Eye className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => openEditQuotation(q)} className="text-gray-400 hover:text-yellow-400 h-7 w-7 p-0" title="Edit"><Edit className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleSendQuotation(q.id, 'email')} className="text-gray-400 hover:text-blue-400 h-7 w-7 p-0" title="Send Email"><Mail className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleSendQuotation(q.id, 'whatsapp')} className="text-gray-400 hover:text-green-400 h-7 w-7 p-0" title="Send WhatsApp"><MessageSquare className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleGeneratePdf(q.id)} className="text-gray-400 hover:text-purple-400 h-7 w-7 p-0" title="PDF"><FileText className="w-3.5 h-3.5" /></Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteQuotation(q.id)} className="text-gray-400 hover:text-red-400 h-7 w-7 p-0" title="Delete"><Trash2 className="w-3.5 h-3.5" /></Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1556,6 +1532,55 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Mobile Quotation Cards (visible on small screens) */}
+        <div className="lg:hidden space-y-3">
+          {quotationList.map((q: any) => (
+            <Card key={q.id} className="bg-[#181818] border-[#2a2a2a]">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-white font-mono text-sm font-semibold">{q.quotationNumber}</span>
+                  <Badge className={`text-[10px] ${statusBadgeCls(q.status)}`}>{q.status}</Badge>
+                </div>
+                <div>
+                  <p className="text-white text-sm font-medium">{q.customerName || q.lead?.name || '-'}</p>
+                  {q.customerCompany && <p className="text-gray-500 text-xs">{q.customerCompany}</p>}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[#59ff00] font-bold">{fmt(q.amount)}</span>
+                  <span className="text-gray-500 text-xs">{q.validUntil ? fmtDate(q.validUntil) : 'No expiry'}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {q.emailSent && <Badge className="text-[9px] bg-blue-500/20 text-blue-400 border-blue-500/30">Email Sent</Badge>}
+                  {q.whatsappSent && <Badge className="text-[9px] bg-green-500/20 text-green-400 border-green-500/30">WA Sent</Badge>}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-[#2a2a2a]">
+                  <Button size="sm" onClick={() => openQuotationDetail(q)} className="bg-[#59ff00]/10 text-[#59ff00] hover:bg-[#59ff00]/20 border border-[#59ff00]/30 h-7 text-xs">
+                    <Eye className="w-3 h-3 mr-1" /> View
+                  </Button>
+                  <Button size="sm" onClick={() => openEditQuotation(q)} className="bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border border-yellow-500/30 h-7 text-xs">
+                    <Edit className="w-3 h-3 mr-1" /> Edit
+                  </Button>
+                  <Button size="sm" onClick={() => handleSendQuotation(q.id, 'email')} className="bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/30 h-7 text-xs">
+                    <Mail className="w-3 h-3 mr-1" /> Email
+                  </Button>
+                  <Button size="sm" onClick={() => handleSendQuotation(q.id, 'whatsapp')} className="bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/30 h-7 text-xs">
+                    <MessageSquare className="w-3 h-3 mr-1" /> WhatsApp
+                  </Button>
+                  <Button size="sm" onClick={() => handleGeneratePdf(q.id)} className="bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/30 h-7 text-xs">
+                    <FileText className="w-3 h-3 mr-1" /> PDF
+                  </Button>
+                  <Button size="sm" onClick={() => handleDeleteQuotation(q.id)} className="bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 h-7 text-xs">
+                    <Trash2 className="w-3 h-3 mr-1" /> Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {quotationList.length === 0 && (
+            <div className="text-center text-gray-500 py-8">No quotations found. Click &quot;Create Quotation&quot; to get started.</div>
+          )}
+        </div>
 
         {/* Quotation Detail Dialog */}
         <Dialog open={quotationDetailDialog} onOpenChange={setQuotationDetailDialog}>

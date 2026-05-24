@@ -30,19 +30,24 @@ function useIsMounted() {
 }
 
 export default function Home() {
-  const { currentView } = useAppStore()
+  const { currentView, hydrate, _hydrated } = useAppStore()
   const mounted = useIsMounted()
 
+  // Hydrate store from localStorage once after mount
   useEffect(() => {
-    if (mounted) {
+    if (!_hydrated) hydrate()
+  }, [_hydrated, hydrate])
+
+  useEffect(() => {
+    if (mounted && _hydrated) {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }, [currentView, mounted])
+  }, [currentView, mounted, _hydrated])
 
   const hideLayout = ['admin', 'employee-portal'].includes(currentView)
   const showFooter = !hideLayout
 
-  if (!mounted) {
+  if (!mounted || !_hydrated) {
     return (
       <div className="min-h-screen bg-[#0b0b0b] text-white flex flex-col">
         <div className="h-16 bg-[#0b0b0b]/80 backdrop-blur-sm border-b border-[#1a1a1a]" />
