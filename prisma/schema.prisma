@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -40,16 +40,24 @@ model Role {
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  name      String
-  slug      String    @unique
-  image     String?
-  parentId  String?
-  parent    Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryHierarchy")
-  products  Product[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  name           String
+  slug           String    @unique
+  description    String?   // Category description like WooCommerce
+  displayType    String    @default("products") // How to display: "products", "subcategories", "both"
+  menuOrder      Int       @default(0) // Sort order for menus
+  image          String?
+  thumbnail      String?   // Thumbnail image for the category
+  bannerImage    String?   // Banner image for category page
+  seoTitle       String?   // SEO meta title
+  seoDescription String?   // SEO meta description
+  status         String    @default("active") // active, draft
+  parentId       String?
+  parent         Category? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children       Category[] @relation("CategoryHierarchy")
+  products       Product[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Product {
@@ -74,6 +82,7 @@ model Product {
   updatedAt       DateTime        @updatedAt
 
   images     ProductImage[]
+  variants   ProductVariant[]
   orderItems OrderItem[]
   cartItems  CartItem[]
   wishlist   WishlistItem[]
@@ -85,6 +94,23 @@ model ProductImage {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   image     String
   sortOrder Int     @default(0)
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String   // e.g., "Small", "Medium", "Large", "XL", "Custom"
+  sku        String?  // Optional SKU for this variant
+  price      Float    // Price for this specific size/variant
+  stock      Int      @default(0) // Stock for this specific variant
+  weight     String?  // e.g., "50kg", "100kg"
+  dimensions String?  // e.g., "600x400x850mm" for this specific variant
+  isDefault  Boolean  @default(false) // Whether this is the default variant shown
+  sortOrder  Int      @default(0) // Display order
+
+  orderItems OrderItem[]
+  cartItems  CartItem[]
 }
 
 model Order {
@@ -108,24 +134,28 @@ model Order {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
+  id        String         @id @default(cuid())
   orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product        @relation(fields: [productId], references: [id])
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
   qty       Int
   price     Float
 }
 
 model CartItem {
-  id        String  @id @default(cuid())
+  id        String         @id @default(cuid())
   userId    String
-  user      User    @relation(fields: [userId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
   productId String
-  product   Product @relation(fields: [productId], references: [id])
-  qty       Int     @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  product   Product        @relation(fields: [productId], references: [id])
+  variantId String?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+  qty       Int             @default(1)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
 }
 
 model WishlistItem {

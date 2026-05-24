@@ -8,14 +8,42 @@ export async function GET() {
       include: {
         _count: { select: { products: true } },
         parent: { select: { id: true, name: true } },
+        children: {
+          include: {
+            _count: { select: { products: true } },
+          },
+          orderBy: { menuOrder: 'asc' },
+        },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { menuOrder: 'asc' },
     })
+
+    // Explicitly include new fields in response
+    const enrichedCategories = categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      image: category.image,
+      parentId: category.parentId,
+      parent: category.parent,
+      children: category.children,
+      description: category.description,
+      status: category.status,
+      displayType: category.displayType,
+      menuOrder: category.menuOrder,
+      thumbnail: category.thumbnail,
+      bannerImage: category.bannerImage,
+      seoTitle: category.seoTitle,
+      seoDescription: category.seoDescription,
+      _count: category._count,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+    }))
 
     return NextResponse.json({
       status: true,
       message: 'Categories fetched successfully',
-      data: categories,
+      data: enrichedCategories,
     })
   } catch (error) {
     console.error('Categories fetch error:', error)
@@ -30,7 +58,20 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, slug, image, parentId } = body
+    const {
+      name,
+      slug,
+      image,
+      parentId,
+      description,
+      displayType,
+      menuOrder,
+      thumbnail,
+      bannerImage,
+      seoTitle,
+      seoDescription,
+      status,
+    } = body
 
     if (!name) {
       return NextResponse.json(
@@ -56,6 +97,14 @@ export async function POST(request: NextRequest) {
         slug: categorySlug,
         image: image || null,
         parentId: parentId || null,
+        description: description || null,
+        displayType: displayType || 'products',
+        menuOrder: menuOrder !== undefined ? parseInt(String(menuOrder)) : 0,
+        thumbnail: thumbnail || null,
+        bannerImage: bannerImage || null,
+        seoTitle: seoTitle || null,
+        seoDescription: seoDescription || null,
+        status: status || 'active',
       },
     })
 

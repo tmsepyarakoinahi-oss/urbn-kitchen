@@ -32,6 +32,19 @@ const formatPrice = (price: number) => {
 
 type SortOption = 'price-asc' | 'price-desc' | 'name-asc' | 'newest'
 
+interface ProductVariant {
+  id: string
+  productId: string
+  name: string
+  sku: string | null
+  price: number
+  stock: number
+  weight: string | null
+  dimensions: string | null
+  isDefault: boolean
+  sortOrder: number
+}
+
 interface Product {
   id: string
   name: string
@@ -48,6 +61,9 @@ interface Product {
   featured?: boolean
   category: { id: string; name: string; slug: string }
   images?: { image: string }[]
+  variants?: ProductVariant[]
+  priceRange?: { min: number; max: number }
+  defaultVariant?: ProductVariant
 }
 
 interface Category {
@@ -71,6 +87,7 @@ export default function ProductsPage() {
   const [totalProducts, setTotalProducts] = useState(0)
   const [showFilters, setShowFilters] = useState(false)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
+  const [quickViewVariant, setQuickViewVariant] = useState<ProductVariant | null>(null)
 
   const PRODUCTS_PER_PAGE = 12
 
@@ -143,21 +160,26 @@ export default function ProductsPage() {
 
   const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE)
 
-  const handleAddToCart = useCallback((product: Product) => {
+  const handleAddToCart = useCallback((product: Product, variant?: ProductVariant | null) => {
+    const effectiveVariant = variant || product.defaultVariant || (product.variants?.length ? product.variants[0] : null)
     addToCart({
-      id: product.id,
+      id: effectiveVariant ? `${product.id}-${effectiveVariant.id}` : product.id,
       productId: product.id,
       name: product.name,
-      price: product.price,
+      price: effectiveVariant ? effectiveVariant.price : product.price,
       qty: 1,
       image: null,
-      stock: product.stock,
+      stock: effectiveVariant ? effectiveVariant.stock : product.stock,
+      variantId: effectiveVariant?.id || null,
+      variantName: effectiveVariant?.name || null,
+      variantSku: effectiveVariant?.sku || null,
     })
-    toast.success(`${product.name} added to cart`)
+    toast.success(`${product.name}${effectiveVariant ? ` (${effectiveVariant.name})` : ''} added to cart`)
   }, [addToCart])
 
   const handleQuickView = useCallback((product: Product) => {
     setQuickViewProduct(product)
+    setQuickViewVariant(product.defaultVariant || null)
   }, [])
 
   return (
@@ -375,16 +397,28 @@ export default function ProductsPage() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center justify-between mb-1.5">
                         <span className="font-[family-name:var(--font-poppins)] text-[#59ff00] font-bold text-lg">
-                          {formatPrice(product.price)}
+                          {product.variants?.length && product.priceRange && product.priceRange.min !== product.priceRange.max
+                            ? `${formatPrice(product.priceRange.min)} - ${formatPrice(product.priceRange.max)}`
+                            : formatPrice(product.price)}
                         </span>
                       </div>
+                      {product.variants && product.variants.length > 0 && (
+                        <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+                          {product.variants.map((v) => (
+                            <span key={v.id} className="bg-[#1a1a1a] text-gray-400 px-1.5 py-0.5 rounded text-[10px] border border-[#2a2a2a]">
+                              {v.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {!product.variants?.length && <div className="mb-3" />}
 
                       <div className="flex items-center gap-2">
                         <Button
                           onClick={() => handleAddToCart(product)}
-                          disabled={product.stock === 0}
+                          disabled={(product.defaultVariant?.stock ?? product.variants?.[0]?.stock ?? product.stock) === 0}
                           className="flex-1 bg-[#59ff00] text-black hover:bg-[#59ff00]/90 h-9 text-xs font-semibold"
                         >
                           <ShoppingCart className="w-3.5 h-3.5 mr-1" />
@@ -440,7 +474,7 @@ export default function ProductsPage() {
       </div>
 
       {/* ─── QUICK VIEW MODAL ─── */}
-      <Dialog open={!!quickViewProduct} onOpenChange={(open) => { if (!open) setQuickViewProduct(null) }}>
+      <Dialog open={!!quickViewProduct} onOpenChange={(open) => { if (!open) { setQuickViewProduct(null); setQuickViewVariant(null) } }}>
         <DialogContent className="bg-[#151515] border-[#2a2a2a] text-white max-w-2xl">
           {quickViewProduct && (
             <>
@@ -449,6 +483,27 @@ export default function ProductsPage() {
                   {quickViewProduct.name}
                 </DialogTitle>
               </DialogHeader>
+              {/* Variant Selector */}
+              {quickViewProduct.variants && quickViewProduct.variants.length > 0 && (
+                <div className="mt-2">
+                  <label className="text-white text-sm font-medium mb-2 block">Select Size</label>
+                  <div className="flex flex-wrap gap-2">
+                    {quickViewProduct.variants.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => setQuickViewVariant(v)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                          quickViewVariant?.id === v.id
+                            ? 'bg-[#59ff00]/10 border-[#59ff00] text-[#59ff00]'
+                            : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#59ff00]/40 hover:text-white'
+                        }`}
+                      >
+                        {v.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                 {/* Image */}
                 <div className="h-64 bg-[#1a1a1a] rounded-xl flex items-center justify-center">
@@ -461,7 +516,11 @@ export default function ProductsPage() {
                   </Badge>
                   
                   <span className="font-[family-name:var(--font-poppins)] text-[#59ff00] text-2xl font-bold mb-3">
-                    {formatPrice(quickViewProduct.price)}
+                    {quickViewVariant
+                      ? formatPrice(quickViewVariant.price)
+                      : quickViewProduct.variants?.length && quickViewProduct.priceRange && quickViewProduct.priceRange.min !== quickViewProduct.priceRange.max
+                        ? `${formatPrice(quickViewProduct.priceRange.min)} - ${formatPrice(quickViewProduct.priceRange.max)}`
+                        : formatPrice(quickViewProduct.price)}
                   </span>
 
                   <p className="text-gray-400 text-sm mb-4 line-clamp-3">
@@ -489,8 +548,10 @@ export default function ProductsPage() {
                     )}
                     <div className="flex justify-between">
                       <span className="text-gray-500">Availability</span>
-                      <span className={quickViewProduct.stock > 0 ? 'text-[#59ff00]' : 'text-red-400'}>
-                        {quickViewProduct.stock > 0 ? `${quickViewProduct.stock} in stock` : 'Out of stock'}
+                      <span className={(quickViewVariant?.stock ?? quickViewProduct.stock) > 0 ? 'text-[#59ff00]' : 'text-red-400'}>
+                        {(quickViewVariant?.stock ?? quickViewProduct.stock) > 0
+                          ? `${quickViewVariant?.stock ?? quickViewProduct.stock} in stock`
+                          : 'Out of stock'}
                       </span>
                     </div>
                     {quickViewProduct.leadTime && (
@@ -503,8 +564,8 @@ export default function ProductsPage() {
 
                   <div className="flex items-center gap-2 mt-auto">
                     <Button
-                      onClick={() => { handleAddToCart(quickViewProduct); setQuickViewProduct(null) }}
-                      disabled={quickViewProduct.stock === 0}
+                      onClick={() => { handleAddToCart(quickViewProduct, quickViewVariant); setQuickViewProduct(null); setQuickViewVariant(null) }}
+                      disabled={(quickViewVariant?.stock ?? quickViewProduct.stock) === 0}
                       className="flex-1 bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />

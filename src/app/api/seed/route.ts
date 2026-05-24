@@ -17,6 +17,7 @@ async function seedDatabase() {
   await db.cartItem.deleteMany()
   await db.wishlistItem.deleteMany()
   await db.productImage.deleteMany()
+  await db.productVariant.deleteMany()
   await db.product.deleteMany()
   await db.category.deleteMany()
   await db.inquiry.deleteMany()
@@ -110,6 +111,64 @@ async function seedDatabase() {
   for (const pData of productsData) {
     const product = await db.product.create({ data: pData })
     products.push(product)
+  }
+
+  // ── Product Variants (size-based pricing for select products) ──
+  const variantData = [
+    // Ultra Flame 4-Burner - Small/Medium/Large sizes
+    { productId: products[0].id, variants: [
+      { name: 'Small (2 Burner)', sku: 'UF-2B', price: 32000, stock: 20, weight: '35kg', dimensions: '600x700x850mm', isDefault: false, sortOrder: 1 },
+      { name: 'Medium (4 Burner)', sku: 'UF-4B', price: 45000, stock: 15, weight: '55kg', dimensions: '1200x700x850mm', isDefault: true, sortOrder: 2 },
+      { name: 'Large (6 Burner)', sku: 'UF-6B', price: 68000, stock: 8, weight: '75kg', dimensions: '1800x700x850mm', isDefault: false, sortOrder: 3 },
+    ]},
+    // Inferno Pro 6-Burner
+    { productId: products[1].id, variants: [
+      { name: 'Standard', sku: 'IP-6B-STD', price: 78000, stock: 8, weight: '80kg', dimensions: '1800x700x850mm', isDefault: true, sortOrder: 1 },
+      { name: 'With Oven', sku: 'IP-6B-OVN', price: 125000, stock: 4, weight: '120kg', dimensions: '1800x700x900mm', isDefault: false, sortOrder: 2 },
+    ]},
+    // Chef Master 4-Burner with Oven
+    { productId: products[4].id, variants: [
+      { name: 'Gas Oven', sku: 'CM-4BO-GAS', price: 95000, stock: 6, weight: '95kg', dimensions: '1200x700x900mm', isDefault: true, sortOrder: 1 },
+      { name: 'Electric Oven', sku: 'CM-4BO-ELEC', price: 115000, stock: 3, weight: '100kg', dimensions: '1200x700x900mm', isDefault: false, sortOrder: 2 },
+      { name: 'Convection Oven', sku: 'CM-4BO-CONV', price: 135000, stock: 2, weight: '105kg', dimensions: '1200x700x950mm', isDefault: false, sortOrder: 3 },
+    ]},
+    // Frost King Walk-In Cold Room
+    { productId: products[9].id, variants: [
+      { name: 'Small (6x6x8 ft)', sku: 'FK-CR-S', price: 250000, stock: 3, weight: '200kg', dimensions: '6x6x8 ft', isDefault: true, sortOrder: 1 },
+      { name: 'Medium (8x8x10 ft)', sku: 'FK-CR-M', price: 350000, stock: 2, weight: '350kg', dimensions: '8x8x10 ft', isDefault: false, sortOrder: 2 },
+      { name: 'Large (10x12x12 ft)', sku: 'FK-CR-L', price: 550000, stock: 1, weight: '500kg', dimensions: '10x12x12 ft', isDefault: false, sortOrder: 3 },
+      { name: 'Extra Large (15x15x12 ft)', sku: 'FK-CR-XL', price: 780000, stock: 1, weight: '750kg', dimensions: '15x15x12 ft', isDefault: false, sortOrder: 4 },
+    ]},
+    // Showcase Pro Dry Display Counter
+    { productId: products[20].id, variants: [
+      { name: '3ft Counter', sku: 'SP-DC-3', price: 45000, stock: 10, weight: '30kg', dimensions: '900x500x1300mm', isDefault: false, sortOrder: 1 },
+      { name: '5ft Counter', sku: 'SP-DC-5', price: 68000, stock: 7, weight: '45kg', dimensions: '1500x500x1300mm', isDefault: true, sortOrder: 2 },
+      { name: '7ft Counter', sku: 'SP-DC-7', price: 92000, stock: 4, weight: '60kg', dimensions: '2100x500x1300mm', isDefault: false, sortOrder: 3 },
+    ]},
+    // Chill Display 4-Door
+    { productId: products[21].id, variants: [
+      { name: '2-Door', sku: 'CD-RC-2D', price: 98000, stock: 6, weight: '80kg', dimensions: '1200x600x1300mm', isDefault: false, sortOrder: 1 },
+      { name: '4-Door', sku: 'CD-RC-4D', price: 155000, stock: 4, weight: '120kg', dimensions: '2000x600x1300mm', isDefault: true, sortOrder: 2 },
+      { name: '6-Door', sku: 'CD-RC-6D', price: 210000, stock: 2, weight: '160kg', dimensions: '2800x600x1300mm', isDefault: false, sortOrder: 3 },
+    ]},
+  ]
+
+  for (const vd of variantData) {
+    for (const variant of vd.variants) {
+      await db.productVariant.create({
+        data: {
+          productId: vd.productId,
+          name: variant.name,
+          sku: variant.sku,
+          price: variant.price,
+          stock: variant.stock,
+          weight: variant.weight,
+          dimensions: variant.dimensions,
+          isDefault: variant.isDefault,
+          sortOrder: variant.sortOrder,
+        },
+      })
+    }
   }
 
   // ── Orders (8) ──

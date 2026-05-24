@@ -79,8 +79,8 @@ interface AppState {
   setUser: (user: any | null) => void
   setCartItems: (items: CartItem[]) => void
   addToCart: (item: CartItem) => void
-  removeFromCart: (productId: string) => void
-  updateCartQty: (productId: string, qty: number) => void
+  removeFromCart: (productId: string, variantId?: string | null) => void
+  updateCartQty: (productId: string, qty: number, variantId?: string | null) => void
   clearCart: () => void
   setSearchQuery: (query: string) => void
   setSelectedCategory: (category: string | null) => void
@@ -98,6 +98,9 @@ export interface CartItem {
   qty: number
   image: string | null
   stock: number
+  variantId?: string | null      // variant ID if a specific size is selected
+  variantName?: string | null    // e.g. "Large", "Medium" for display
+  variantSku?: string | null     // variant SKU
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -135,11 +138,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   
   addToCart: (item) => {
     const { cartItems } = get()
-    const existing = cartItems.find(i => i.productId === item.productId)
+    // Match by both productId AND variantId so that different variants
+    // of the same product are treated as separate cart items
+    const variantId = item.variantId ?? null
+    const existing = cartItems.find(
+      i => i.productId === item.productId && (i.variantId ?? null) === variantId
+    )
     let newItems: CartItem[]
     if (existing) {
-      newItems = cartItems.map(i => 
-        i.productId === item.productId ? { ...i, qty: i.qty + item.qty } : i
+      newItems = cartItems.map(i =>
+        i.productId === item.productId && (i.variantId ?? null) === variantId
+          ? { ...i, qty: i.qty + item.qty }
+          : i
       )
     } else {
       newItems = [...cartItems, item]
@@ -147,21 +157,33 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
   },
   
-  removeFromCart: (productId) => {
+  removeFromCart: (productId, variantId) => {
     const { cartItems } = get()
-    const newItems = cartItems.filter(i => i.productId !== productId)
+    const vId = variantId ?? null
+    let newItems: CartItem[]
+    if (vId) {
+      // Remove the specific variant
+      newItems = cartItems.filter(
+        i => !(i.productId === productId && (i.variantId ?? null) === vId)
+      )
+    } else {
+      // No variant specified — remove all items for this productId (backward compatible)
+      newItems = cartItems.filter(i => i.productId !== productId)
+    }
     set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
   },
   
-  updateCartQty: (productId, qty) => {
+  updateCartQty: (productId, qty, variantId) => {
     const { cartItems } = get()
+    const vId = variantId ?? null
+    const isMatch = (i: CartItem) =>
+      i.productId === productId && (i.variantId ?? null) === vId
+
     if (qty <= 0) {
-      const newItems = cartItems.filter(i => i.productId !== productId)
+      const newItems = cartItems.filter(i => !isMatch(i))
       set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
     } else {
-      const newItems = cartItems.map(i => 
-        i.productId === productId ? { ...i, qty } : i
-      )
+      const newItems = cartItems.map(i => isMatch(i) ? { ...i, qty } : i)
       set({ cartItems: newItems, cartCount: newItems.reduce((sum, i) => sum + i.qty, 0) })
     }
   },

@@ -29,6 +29,19 @@ const formatPrice = (price: number) => {
   return '₹' + otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + lastThree
 }
 
+interface ProductVariant {
+  id: string
+  productId: string
+  name: string
+  sku: string | null
+  price: number
+  stock: number
+  weight: string | null
+  dimensions: string | null
+  isDefault: boolean
+  sortOrder: number
+}
+
 interface Product {
   id: string
   name: string
@@ -45,6 +58,9 @@ interface Product {
   featured?: boolean
   category: { id: string; name: string; slug: string }
   images?: { image: string }[]
+  variants?: ProductVariant[]
+  priceRange?: { min: number; max: number }
+  defaultVariant?: ProductVariant
 }
 
 interface RelatedProduct {
@@ -63,6 +79,7 @@ export default function ProductDetailPage() {
   const [related, setRelated] = useState<RelatedProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [qty, setQty] = useState(1)
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
 
   const [prevId, setPrevId] = useState<string | null>(null)
 
@@ -82,6 +99,8 @@ export default function ProductDetailPage() {
         if (cancelled) return
         if (data.status && data.data) {
           setProduct(data.data)
+          // Pre-select the default variant if it exists
+          setSelectedVariant(data.data.defaultVariant || null)
           if (data.data.category?.slug) {
             const rdRes = await fetch(`/api/products?category=${data.data.category.slug}&limit=4`)
             const rd = await rdRes.json()
@@ -104,16 +123,19 @@ export default function ProductDetailPage() {
   const handleAddToCart = useCallback(() => {
     if (!product) return
     addToCart({
-      id: product.id,
+      id: selectedVariant ? `${product.id}-${selectedVariant.id}` : product.id,
       productId: product.id,
       name: product.name,
-      price: product.price,
+      price: selectedVariant ? selectedVariant.price : product.price,
       qty,
       image: null,
-      stock: product.stock,
+      stock: selectedVariant ? selectedVariant.stock : product.stock,
+      variantId: selectedVariant?.id || null,
+      variantName: selectedVariant?.name || null,
+      variantSku: selectedVariant?.sku || null,
     })
-    toast.success(`${qty}x ${product.name} added to cart`)
-  }, [product, qty, addToCart])
+    toast.success(`${qty}x ${product.name}${selectedVariant ? ` (${selectedVariant.name})` : ''} added to cart`)
+  }, [product, qty, selectedVariant, addToCart])
 
   if (loading) {
     return (
@@ -198,10 +220,36 @@ export default function ProductDetailPage() {
             )}
 
             {/* Price */}
-            <div className="font-[family-name:var(--font-poppins)] text-[#59ff00] text-3xl sm:text-4xl font-bold mb-6">
-              {formatPrice(product.price)}
+            <div className="font-[family-name:var(--font-poppins)] text-[#59ff00] text-3xl sm:text-4xl font-bold mb-4">
+              {selectedVariant
+                ? formatPrice(selectedVariant.price)
+                : product.variants?.length && product.priceRange && product.priceRange.min !== product.priceRange.max
+                  ? `${formatPrice(product.priceRange.min)} - ${formatPrice(product.priceRange.max)}`
+                  : formatPrice(product.price)}
               <span className="text-gray-600 text-sm font-normal ml-2">+ GST</span>
             </div>
+
+            {/* Variant Selector */}
+            {product.variants && product.variants.length > 0 && (
+              <div className="mb-6">
+                <label className="text-white text-sm font-medium mb-2.5 block">Select Size</label>
+                <div className="flex flex-wrap gap-2">
+                  {product.variants.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setSelectedVariant(v)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                        selectedVariant?.id === v.id
+                          ? 'bg-[#59ff00]/10 border-[#59ff00] text-[#59ff00]'
+                          : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#59ff00]/40 hover:text-white'
+                      }`}
+                    >
+                      {v.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Key Specs */}
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -223,13 +271,13 @@ export default function ProductDetailPage() {
                   <div className="text-white text-sm font-semibold">{product.capacity}</div>
                 </div>
               )}
-              {product.dimensions && (
+              {(selectedVariant?.dimensions || product.dimensions) && (
                 <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
                   <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
                     <Package className="w-3.5 h-3.5" />
                     Dimensions
                   </div>
-                  <div className="text-white text-sm font-semibold">{product.dimensions}</div>
+                  <div className="text-white text-sm font-semibold">{selectedVariant?.dimensions || product.dimensions}</div>
                 </div>
               )}
               {product.leadTime && (
@@ -245,9 +293,11 @@ export default function ProductDetailPage() {
 
             {/* Stock Status */}
             <div className="flex items-center gap-2 mb-6">
-              <div className={`w-2.5 h-2.5 rounded-full ${product.stock > 0 ? 'bg-[#59ff00] animate-pulse' : 'bg-red-500'}`} />
-              <span className={`text-sm ${product.stock > 0 ? 'text-[#59ff00]' : 'text-red-400'}`}>
-                {product.stock > 0 ? `${product.stock} units in stock` : 'Currently out of stock'}
+              <div className={`w-2.5 h-2.5 rounded-full ${(selectedVariant?.stock ?? product.stock) > 0 ? 'bg-[#59ff00] animate-pulse' : 'bg-red-500'}`} />
+              <span className={`text-sm ${(selectedVariant?.stock ?? product.stock) > 0 ? 'text-[#59ff00]' : 'text-red-400'}`}>
+                {(selectedVariant?.stock ?? product.stock) > 0
+                  ? `${selectedVariant?.stock ?? product.stock} units in stock`
+                  : 'Currently out of stock'}
               </span>
               {product.moq && product.moq > 1 && (
                 <span className="text-gray-600 text-xs ml-2">| MOQ: {product.moq}</span>
@@ -267,7 +317,7 @@ export default function ProductDetailPage() {
                 </button>
                 <span className="w-12 text-center text-white font-semibold">{qty}</span>
                 <button
-                  onClick={() => setQty(q => Math.min(product.stock || 99, q + 1))}
+                  onClick={() => setQty(q => Math.min((selectedVariant?.stock ?? product.stock) || 99, q + 1))}
                   className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                 >
                   <Plus className="w-4 h-4" />
@@ -276,11 +326,11 @@ export default function ProductDetailPage() {
 
               <Button
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={(selectedVariant?.stock ?? product.stock) === 0}
                 className="flex-1 bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-bold h-12 text-base neon-glow"
               >
                 <ShoppingCart className="w-5 h-5 mr-2" />
-                Add to Cart — {formatPrice(product.price * qty)}
+                Add to Cart — {formatPrice((selectedVariant?.price ?? product.price) * qty)}
               </Button>
             </div>
 
@@ -333,10 +383,11 @@ export default function ProductDetailPage() {
                       { label: 'Category', value: product.category.name },
                       { label: 'Steel Grade', value: product.steelGrade || 'N/A' },
                       { label: 'Capacity', value: product.capacity || 'N/A' },
-                      { label: 'Dimensions', value: product.dimensions || 'N/A' },
+                      { label: 'Dimensions', value: selectedVariant?.dimensions || product.dimensions || 'N/A' },
+                      { label: 'Weight', value: selectedVariant?.weight || 'N/A' },
                       { label: 'Minimum Order', value: product.moq ? `${product.moq} unit(s)` : '1 unit' },
                       { label: 'Lead Time', value: product.leadTime || 'N/A' },
-                      { label: 'Stock Available', value: `${product.stock} units` },
+                      { label: 'Stock Available', value: `${selectedVariant?.stock ?? product.stock} units` },
                     ].map((row, i) => (
                       <tr key={row.label} className={i % 2 === 0 ? 'bg-[#1a1a1a]/50' : ''}>
                         <td className="px-5 py-3 text-gray-500 w-1/3">{row.label}</td>

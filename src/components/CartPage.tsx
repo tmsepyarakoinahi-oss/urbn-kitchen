@@ -96,7 +96,7 @@ export default function CartPage() {
             <div className="flex flex-col gap-4">
               {cartItems.map((item, i) => (
                 <motion.div
-                  key={item.productId}
+                  key={`${item.productId}-${item.variantId ?? 'no-variant'}`}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
@@ -111,6 +111,9 @@ export default function CartPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-white font-semibold text-sm sm:text-base line-clamp-2 mb-1">
                       {item.name}
+                      {item.variantName && (
+                        <span className="text-[#59ff00] text-xs font-normal ml-2">({item.variantName})</span>
+                      )}
                     </h3>
                     <p className="text-[#59ff00] font-[family-name:var(--font-poppins)] font-bold text-sm sm:text-base mb-2">
                       {formatPrice(item.price)}
@@ -120,14 +123,14 @@ export default function CartPage() {
                       {/* Quantity Selector */}
                       <div className="flex items-center bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
                         <button
-                          onClick={() => updateCartQty(item.productId, item.qty - 1)}
+                          onClick={() => updateCartQty(item.productId, item.qty - 1, item.variantId)}
                           className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                         >
                           <Minus className="w-3.5 h-3.5" />
                         </button>
                         <span className="w-10 text-center text-white text-sm font-semibold">{item.qty}</span>
                         <button
-                          onClick={() => updateCartQty(item.productId, item.qty + 1)}
+                          onClick={() => updateCartQty(item.productId, item.qty + 1, item.variantId)}
                           className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />
@@ -139,7 +142,7 @@ export default function CartPage() {
                           {formatPrice(item.price * item.qty)}
                         </span>
                         <button
-                          onClick={() => handleRemoveItem(item.productId, item.name)}
+                          onClick={() => { removeFromCart(item.productId, item.variantId); toast.success(`${item.name}${item.variantName ? ` (${item.variantName})` : ''} removed from cart`) }}
                           className="text-gray-600 hover:text-red-400 transition-colors p-1"
                         >
                           <Trash2 className="w-4 h-4" />

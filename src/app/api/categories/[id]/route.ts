@@ -6,16 +6,37 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, slug, image, parentId } = body
+    const {
+      name,
+      slug,
+      image,
+      parentId,
+      description,
+      displayType,
+      menuOrder,
+      thumbnail,
+      bannerImage,
+      seoTitle,
+      seoDescription,
+      status,
+    } = body
 
     const existing = await db.category.findUnique({ where: { id } })
     if (!existing) return NextResponse.json({ status: false, message: 'Category not found' }, { status: 404 })
 
     const updateData: Record<string, unknown> = {}
-    if (name) updateData.name = name
-    if (slug) updateData.slug = slug
+    if (name !== undefined) updateData.name = name
+    if (slug !== undefined) updateData.slug = slug
     if (image !== undefined) updateData.image = image || null
     if (parentId !== undefined) updateData.parentId = parentId || null
+    if (description !== undefined) updateData.description = description || null
+    if (displayType !== undefined) updateData.displayType = displayType
+    if (menuOrder !== undefined) updateData.menuOrder = parseInt(String(menuOrder))
+    if (thumbnail !== undefined) updateData.thumbnail = thumbnail || null
+    if (bannerImage !== undefined) updateData.bannerImage = bannerImage || null
+    if (seoTitle !== undefined) updateData.seoTitle = seoTitle || null
+    if (seoDescription !== undefined) updateData.seoDescription = seoDescription || null
+    if (status !== undefined) updateData.status = status
 
     const category = await db.category.update({
       where: { id },

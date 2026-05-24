@@ -29,6 +29,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
@@ -166,6 +167,26 @@ interface CategoryForm {
   slug: string
   image: string
   parentId: string
+  description: string
+  displayType: string
+  menuOrder: string
+  thumbnail: string
+  bannerImage: string
+  seoTitle: string
+  seoDescription: string
+  status: string
+}
+
+interface VariantForm {
+  id?: string
+  name: string
+  sku: string
+  price: string
+  stock: string
+  weight: string
+  dimensions: string
+  isDefault: boolean
+  sortOrder: number
 }
 
 const emptyProductForm: ProductForm = {
@@ -176,6 +197,14 @@ const emptyProductForm: ProductForm = {
 
 const emptyCategoryForm: CategoryForm = {
   name: '', slug: '', image: '', parentId: '',
+  description: '', displayType: 'products', menuOrder: '0',
+  thumbnail: '', bannerImage: '', seoTitle: '', seoDescription: '',
+  status: 'active',
+}
+
+const emptyVariantForm: VariantForm = {
+  name: '', sku: '', price: '', stock: '',
+  weight: '', dimensions: '', isDefault: false, sortOrder: 0,
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -217,6 +246,7 @@ export default function AdminDashboard() {
   // ─── Form States ────────────────────────────────────────
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm)
   const [categoryForm, setCategoryForm] = useState<CategoryForm>(emptyCategoryForm)
+  const [productVariants, setProductVariants] = useState<VariantForm[]>([])
   const [leadForm, setLeadForm] = useState({
     name: '', company: '', phone: '', email: '', city: '', requirement: '', message: '', source: 'website', assignedTo: '',
   })
@@ -407,7 +437,7 @@ export default function AdminDashboard() {
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(productForm),
+        body: JSON.stringify({ ...productForm, variants: productVariants }),
       })
       const json = await res.json()
       if (json.status) {
@@ -601,12 +631,26 @@ export default function AdminDashboard() {
       featuredImage: p.featuredImage || '',
       featured: p.featured || false,
     })
+    setProductVariants(
+      (p.variants || []).map((v: any) => ({
+        id: v.id,
+        name: v.name || '',
+        sku: v.sku || '',
+        price: String(v.price ?? ''),
+        stock: String(v.stock ?? ''),
+        weight: v.weight || '',
+        dimensions: v.dimensions || '',
+        isDefault: v.isDefault || false,
+        sortOrder: v.sortOrder || 0,
+      }))
+    )
     setProductDialog(true)
   }
 
   const openNewProduct = () => {
     setEditProduct(null)
     setProductForm(emptyProductForm)
+    setProductVariants([])
     setProductDialog(true)
   }
 
@@ -617,6 +661,14 @@ export default function AdminDashboard() {
       slug: c.slug || '',
       image: c.image || '',
       parentId: c.parentId || '',
+      description: c.description || '',
+      displayType: c.displayType || 'products',
+      menuOrder: String(c.menuOrder ?? '0'),
+      thumbnail: c.thumbnail || '',
+      bannerImage: c.bannerImage || '',
+      seoTitle: c.seoTitle || '',
+      seoDescription: c.seoDescription || '',
+      status: c.status || 'active',
     })
     setCategoryDialog(true)
   }
@@ -942,7 +994,22 @@ export default function AdminDashboard() {
                       </div>
                     </TableCell>
                     <TableCell className="text-gray-300 text-sm">{p.category?.name}</TableCell>
-                    <TableCell className="text-[#59ff00] text-sm font-semibold">{fmt(p.price)}</TableCell>
+                    <TableCell>
+                      <div>
+                        <span className="text-[#59ff00] text-sm font-semibold">
+                          {p.variants && p.variants.length > 0
+                            ? (p.priceRange?.min != null && p.priceRange?.max != null
+                                ? `${fmt(p.priceRange.min)} - ${fmt(p.priceRange.max)}`
+                                : fmt(p.price))
+                            : fmt(p.price)}
+                        </span>
+                        {p.variants && p.variants.length > 0 && (
+                          <Badge className="ml-2 bg-[#59ff00]/10 text-[#59ff00] border-[#59ff00]/30 text-[10px]">
+                            {p.variants.length} {p.variants.length === 1 ? 'size' : 'sizes'}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Badge className={p.stock <= 5 ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'}>{p.stock}</Badge>
                     </TableCell>
@@ -996,6 +1063,9 @@ export default function AdminDashboard() {
                   <TableHead className="text-gray-400">Slug</TableHead>
                   <TableHead className="text-gray-400">Parent</TableHead>
                   <TableHead className="text-gray-400">Products</TableHead>
+                  <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-400">Display</TableHead>
+                  <TableHead className="text-gray-400">Sort</TableHead>
                   <TableHead className="text-gray-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1021,6 +1091,9 @@ export default function AdminDashboard() {
                         {c._count?.products || 0}
                       </Badge>
                     </TableCell>
+                    <TableCell><Badge className={statusBadgeCls(c.status || 'active')}>{c.status || 'active'}</Badge></TableCell>
+                    <TableCell className="text-gray-300 text-sm capitalize">{c.displayType || 'products'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{c.menuOrder ?? '0'}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Button size="sm" variant="ghost" onClick={() => openEditCategory(c)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0">
@@ -1034,7 +1107,7 @@ export default function AdminDashboard() {
                   </TableRow>
                 ))}
                 {categories.length === 0 && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-gray-500 py-8">No categories found</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center text-gray-500 py-8">No categories found</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -1762,7 +1835,7 @@ export default function AdminDashboard() {
 
       {/* Product Dialog (with image upload) */}
       <Dialog open={productDialog} onOpenChange={setProductDialog}>
-        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{editProduct ? 'Edit Product' : 'Add Product'}</DialogTitle>
             <DialogDescription className="text-gray-400">Fill in the product details below.</DialogDescription>
@@ -1906,6 +1979,172 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
+
+          {/* ─── Size / Variants Section ──────────────────────── */}
+          <div className="mt-5 border-t border-[#2a2a2a] pt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white text-sm font-semibold flex items-center gap-2">
+                <Package className="w-4 h-4 text-[#59ff00]" />
+                Size / Variants
+              </h3>
+              <Button
+                type="button"
+                size="sm"
+                className="bg-[#59ff00]/10 text-[#59ff00] hover:bg-[#59ff00]/20 border border-[#59ff00]/30 font-semibold"
+                onClick={() => {
+                  setProductVariants(prev => [
+                    ...prev,
+                    { ...emptyVariantForm, sortOrder: prev.length, name: `Variant ${prev.length + 1}` },
+                  ])
+                }}
+              >
+                <Plus className="w-3.5 h-3.5 mr-1" /> Add Variant
+              </Button>
+            </div>
+
+            {productVariants.length === 0 ? (
+              <div className="text-center py-6 rounded-lg border border-dashed border-[#2a2a2a]">
+                <Package className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No variants added yet</p>
+                <p className="text-gray-600 text-xs">Click "Add Variant" to create size/variant options</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                {productVariants.map((v, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-[#0b0b0b] border border-[#2a2a2a] rounded-lg p-3 hover:border-[#59ff00]/20 transition-colors"
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="flex-1 grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-gray-500 text-[10px] uppercase tracking-wider">Name</Label>
+                          <Input
+                            className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-sm"
+                            placeholder="e.g. Small"
+                            value={v.name}
+                            onChange={(e) => {
+                              const updated = [...productVariants]
+                              updated[idx] = { ...updated[idx], name: e.target.value }
+                              setProductVariants(updated)
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-gray-500 text-[10px] uppercase tracking-wider">Price (₹)</Label>
+                          <Input
+                            type="number"
+                            className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-sm"
+                            placeholder="0"
+                            value={v.price}
+                            onChange={(e) => {
+                              const updated = [...productVariants]
+                              updated[idx] = { ...updated[idx], price: e.target.value }
+                              setProductVariants(updated)
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-gray-500 text-[10px] uppercase tracking-wider">Stock</Label>
+                          <Input
+                            type="number"
+                            className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-sm"
+                            placeholder="0"
+                            value={v.stock}
+                            onChange={(e) => {
+                              const updated = [...productVariants]
+                              updated[idx] = { ...updated[idx], stock: e.target.value }
+                              setProductVariants(updated)
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0 mt-4"
+                        onClick={() => {
+                          setProductVariants(prev => prev.filter((_, i) => i !== idx))
+                        }}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                    <div className="flex items-start gap-2 mt-2">
+                      <div className="flex-1 grid grid-cols-4 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-gray-500 text-[10px] uppercase tracking-wider">SKU</Label>
+                          <Input
+                            className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-sm"
+                            placeholder="SKU"
+                            value={v.sku}
+                            onChange={(e) => {
+                              const updated = [...productVariants]
+                              updated[idx] = { ...updated[idx], sku: e.target.value }
+                              setProductVariants(updated)
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-gray-500 text-[10px] uppercase tracking-wider">Weight</Label>
+                          <Input
+                            className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-sm"
+                            placeholder="e.g. 5kg"
+                            value={v.weight}
+                            onChange={(e) => {
+                              const updated = [...productVariants]
+                              updated[idx] = { ...updated[idx], weight: e.target.value }
+                              setProductVariants(updated)
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-gray-500 text-[10px] uppercase tracking-wider">Dimensions</Label>
+                          <Input
+                            className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-sm"
+                            placeholder="e.g. 600x400"
+                            value={v.dimensions}
+                            onChange={(e) => {
+                              const updated = [...productVariants]
+                              updated[idx] = { ...updated[idx], dimensions: e.target.value }
+                              setProductVariants(updated)
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-gray-500 text-[10px] uppercase tracking-wider">Sort</Label>
+                          <Input
+                            type="number"
+                            className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-sm"
+                            value={v.sortOrder}
+                            onChange={(e) => {
+                              const updated = [...productVariants]
+                              updated[idx] = { ...updated[idx], sortOrder: parseInt(e.target.value) || 0 }
+                              setProductVariants(updated)
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Switch
+                        checked={v.isDefault}
+                        onCheckedChange={(checked) => {
+                          const updated = productVariants.map((variant, i) => ({
+                            ...variant,
+                            isDefault: i === idx ? checked : false,
+                          }))
+                          setProductVariants(updated)
+                        }}
+                      />
+                      <Label className="text-gray-400 text-xs">Default variant</Label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setProductDialog(false)} className="text-gray-400 hover:text-white">Cancel</Button>
             <Button onClick={handleSaveProduct} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">{editProduct ? 'Update' : 'Create'}</Button>
@@ -1915,40 +2154,98 @@ export default function AdminDashboard() {
 
       {/* Category Dialog */}
       <Dialog open={categoryDialog} onOpenChange={setCategoryDialog}>
-        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-md">
+        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{editCategory ? 'Edit Category' : 'Add Category'}</DialogTitle>
             <DialogDescription className="text-gray-400">Fill in the category details below.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-gray-300 text-sm">Name *</Label>
-              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="Category name" value={categoryForm.name} onChange={(e) => setCategoryForm(p => ({ ...p, name: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-gray-300 text-sm">Slug</Label>
-              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="auto-generated from name" value={categoryForm.slug} onChange={(e) => setCategoryForm(p => ({ ...p, slug: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-gray-300 text-sm">Image URL</Label>
-              <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="/uploads/image.jpg" value={categoryForm.image} onChange={(e) => setCategoryForm(p => ({ ...p, image: e.target.value }))} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-gray-300 text-sm">Parent Category</Label>
-              <Select value={categoryForm.parentId} onValueChange={(v) => setCategoryForm(p => ({ ...p, parentId: v }))}>
-                <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue placeholder="None (Top Level)" /></SelectTrigger>
-                <SelectContent className="bg-[#181818] border-[#2a2a2a]">
-                  <SelectItem value="none" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">None (Top Level)</SelectItem>
-                  {categories
-                    .filter((c: any) => c.id !== editCategory?.id)
-                    .map((c: any) => (
-                      <SelectItem key={c.id} value={c.id} className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">{c.name}</SelectItem>
-                    ))
-                  }
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="bg-[#0b0b0b] border border-[#2a2a2a] w-full">
+              <TabsTrigger value="general" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00] flex-1">General</TabsTrigger>
+              <TabsTrigger value="images" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00] flex-1">Images</TabsTrigger>
+              <TabsTrigger value="seo" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00] flex-1">SEO</TabsTrigger>
+            </TabsList>
+            <TabsContent value="general" className="space-y-3 mt-3">
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Name *</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="Category name" value={categoryForm.name} onChange={(e) => setCategoryForm(p => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Slug</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="auto-generated from name" value={categoryForm.slug} onChange={(e) => setCategoryForm(p => ({ ...p, slug: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Parent Category</Label>
+                <Select value={categoryForm.parentId} onValueChange={(v) => setCategoryForm(p => ({ ...p, parentId: v }))}>
+                  <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue placeholder="None (Top Level)" /></SelectTrigger>
+                  <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                    <SelectItem value="none" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">None (Top Level)</SelectItem>
+                    {categories
+                      .filter((c: any) => c.id !== editCategory?.id)
+                      .map((c: any) => (
+                        <SelectItem key={c.id} value={c.id} className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">{c.name}</SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Description</Label>
+                <Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={3} placeholder="Category description..." value={categoryForm.description} onChange={(e) => setCategoryForm(p => ({ ...p, description: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-gray-300 text-sm">Status</Label>
+                  <Select value={categoryForm.status} onValueChange={(v) => setCategoryForm(p => ({ ...p, status: v }))}>
+                    <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                      <SelectItem value="active" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">Active</SelectItem>
+                      <SelectItem value="draft" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-gray-300 text-sm">Display Type</Label>
+                  <Select value={categoryForm.displayType} onValueChange={(v) => setCategoryForm(p => ({ ...p, displayType: v }))}>
+                    <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                      <SelectItem value="products" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">Products</SelectItem>
+                      <SelectItem value="subcategories" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">Subcategories</SelectItem>
+                      <SelectItem value="both" className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">Both</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-gray-300 text-sm">Menu Order</Label>
+                  <Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={categoryForm.menuOrder} onChange={(e) => setCategoryForm(p => ({ ...p, menuOrder: e.target.value }))} />
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="images" className="space-y-3 mt-3">
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Image URL</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="/uploads/image.jpg" value={categoryForm.image} onChange={(e) => setCategoryForm(p => ({ ...p, image: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Thumbnail URL</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="/uploads/thumbnail.jpg" value={categoryForm.thumbnail} onChange={(e) => setCategoryForm(p => ({ ...p, thumbnail: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">Banner Image URL</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="/uploads/banner.jpg" value={categoryForm.bannerImage} onChange={(e) => setCategoryForm(p => ({ ...p, bannerImage: e.target.value }))} />
+              </div>
+            </TabsContent>
+            <TabsContent value="seo" className="space-y-3 mt-3">
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">SEO Title</Label>
+                <Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="SEO title for search engines" value={categoryForm.seoTitle} onChange={(e) => setCategoryForm(p => ({ ...p, seoTitle: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-gray-300 text-sm">SEO Description</Label>
+                <Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={3} placeholder="Meta description for search engines..." value={categoryForm.seoDescription} onChange={(e) => setCategoryForm(p => ({ ...p, seoDescription: e.target.value }))} />
+              </div>
+            </TabsContent>
+          </Tabs>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setCategoryDialog(false)} className="text-gray-400 hover:text-white">Cancel</Button>
             <Button onClick={handleSaveCategory} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">{editCategory ? 'Update' : 'Create'}</Button>
