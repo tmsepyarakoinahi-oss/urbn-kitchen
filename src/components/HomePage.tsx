@@ -465,6 +465,39 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ═══════════════════ AMC BANNER ═══════════════════ */}
+      <section className="py-12 md:py-16 bg-[#0b0b0b]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="relative overflow-hidden rounded-2xl border border-[#59ff00]/20 bg-gradient-to-r from-[#59ff00]/5 via-[#151515] to-[#59ff00]/5 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6"
+          >
+            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-5" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-5 h-5 text-[#59ff00]" />
+                <span className="text-[#59ff00] text-xs font-semibold uppercase tracking-wider">Annual Maintenance Contract</span>
+              </div>
+              <h3 className="font-[family-name:var(--font-poppins)] text-xl md:text-2xl font-bold text-white mb-2">
+                Protect Your Investment with <span className="text-[#59ff00]">Urban Kitchen AMC</span>
+              </h3>
+              <p className="text-gray-400 text-sm md:text-base max-w-xl">
+                Keep your kitchen running at peak performance. Our AMC plans cover preventive maintenance, emergency repairs, and genuine spare parts — all with priority response.
+              </p>
+            </div>
+            <button
+              onClick={() => setView('amc')}
+              className="relative z-10 flex items-center gap-2 bg-[#59ff00] text-black font-semibold px-6 py-3 rounded-lg hover:bg-[#59ff00]/90 transition-all shadow-[0_0_20px_rgba(89,255,0,0.3)] hover:shadow-[0_0_30px_rgba(89,255,0,0.5)] whitespace-nowrap"
+            >
+              Explore AMC Plans <ArrowRight className="w-4 h-4" />
+            </button>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ═══════════════════ TESTIMONIALS ═══════════════════ */}
       <section className="py-16 md:py-24 bg-[#0d0d0d]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
