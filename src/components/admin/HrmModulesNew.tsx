@@ -514,6 +514,7 @@ function PermissionsModule() {
   )
 }
 
+
 export default function HrmModules({ adminTab, employees }: HrmModulesProps) {
   switch (adminTab) {
     case 'hrm-dashboard': return <HrmDashboard employees={employees} />

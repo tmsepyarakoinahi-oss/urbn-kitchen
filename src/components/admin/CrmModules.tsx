@@ -566,6 +566,7 @@ function EmailSequencesModule() {
   )
 }
 
+
 // ─── CRM Sales Modules ───────────────────────────────────
 function CrmSalesModule({ title, description, icon: Icon, type }: { title: string; description: string; icon: React.ElementType; type: string }) {
   const [items, setItems] = useState<any[]>([])
@@ -636,6 +637,7 @@ export default function CrmModules({ adminTab, leads, employees }: CrmModulesPro
     case 'crm-integrations': return <IntegrationsModule />
     case 'crm-email-templates': return <EmailTemplatesModule />
     case 'crm-email-sequences': return <EmailSequencesModule />
+
     // CRM Sales
     case 'crm-sales': return <CrmSalesModule title="Sales" description="Track sales performance, targets, and revenue metrics" icon={DollarSign} type="sales" />
     case 'crm-quotes': return <CrmSalesModule title="Quotes" description="Manage sales quotes and proposals" icon={Receipt} type="quotes" />
