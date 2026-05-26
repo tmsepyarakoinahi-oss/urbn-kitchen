@@ -1,4 +1,5 @@
 import { db } from '../src/lib/db'
+import { hashPassword } from '../src/lib/auth'
 
 async function seed() {
   console.log('🌱 Seeding database...')
@@ -27,19 +28,28 @@ async function seed() {
   console.log('✅ Roles created')
 
   // ─── Create Admin User ───
-  const existingAdmin = await db.user.findUnique({ where: { email: 'admin@urbankitchen.com' } })
+  const adminPwd = await hashPassword('admin123')
+  const existingAdmin = await db.user.findUnique({ where: { email: 'admin@urbankitchens.com' } })
   if (!existingAdmin) {
     await db.user.create({
       data: {
-        name: 'Admin',
-        email: 'admin@urbankitchen.com',
+        name: 'Rajesh Kumar',
+        email: 'admin@urbankitchens.com',
         phone: '+91-9876543210',
-        password: '$2a$10$dummyhashforadmin1234567890abcdefghijklmnopqrstu',
+        password: adminPwd,
         roleId: adminRole.id,
         status: 'active',
+        emailVerified: true,
       },
     })
-    console.log('✅ Admin user created')
+    console.log('✅ Admin user created (admin@urbankitchens.com / admin123)')
+  } else {
+    // Update password in case the old dummy hash is still there
+    await db.user.update({
+      where: { email: 'admin@urbankitchens.com' },
+      data: { password: adminPwd, emailVerified: true },
+    })
+    console.log('✅ Admin password updated (admin@urbankitchens.com / admin123)')
   }
 
   // ─── Create Categories ───

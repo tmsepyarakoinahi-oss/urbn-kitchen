@@ -174,9 +174,9 @@ function RegisterForm() {
     setLoading(true)
     try {
       const res = await fetch('/api/auth', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'register', ...formData }),
+        body: JSON.stringify({ name: formData.name, email: formData.email, phone: formData.phone, password: formData.password }),
       })
       const data = await res.json()
       if (data.status) {
