@@ -180,6 +180,15 @@ export default function AdminDashboard() {
   useEffect(() => { if (adminTab === 'inquiries') fetch('/api/inquiries?limit=50').then(r => r.json()).then(j => { if (j.status) setInquiryList(j.data.inquiries || j.data || []) }).catch(console.error) }, [adminTab])
   useEffect(() => { if (adminTab === 'settings') fetch('/api/settings').then(r => r.json()).then(j => { if (j.status) setSettingsObj(j.data || {}) }).catch(console.error) }, [adminTab])
   useEffect(() => { if (adminTab === 'activity') { Promise.all([fetch('/api/orders?limit=10'), fetch('/api/leads?limit=10')]).then(([oR, lR]) => Promise.all([oR.json(), lR.json()])).then(([oJ, lJ]) => { const a: any[] = []; if (oJ.status) (oJ.data.orders || []).forEach((o: any) => a.push({ type: 'order', description: `Order ${o.orderNumber} by ${o.customer?.name}`, status: o.orderStatus, date: o.createdAt })); if (lJ.status) (lJ.data.leads || []).forEach((l: any) => a.push({ type: 'lead', description: `Lead: ${l.name} (${l.company || 'N/A'})`, status: l.status, date: l.createdAt })); a.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); setActivityList(a) }).catch(console.error) } }, [adminTab])
+  // Fetch leads/employees for CRM/HRM sub-tabs
+  useEffect(() => {
+    const isCrmSubTab = adminTab.startsWith('crm-')
+    const isHrmSubTab = adminTab.startsWith('hrm-')
+    if (isCrmSubTab || isHrmSubTab) {
+      doFetchLeads()
+      doFetchEmployees()
+    }
+  }, [adminTab, doFetchLeads, doFetchEmployees])
 
   // ─── Image Upload Handler ──────────────────────────────
   const handleImageUpload = async (file: File) => {

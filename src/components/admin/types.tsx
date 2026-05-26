@@ -13,6 +13,8 @@ import {
   Filter, Megaphone, Webhook, FormInput, Database,
   TrendingDown, Timer, CalendarClock, FileSpreadsheet,
   ArrowRight, LayoutGrid, Send, Zap,
+  // Also import PieChart under its original name for re-export
+  PieChart,
 } from 'lucide-react'
 import type { AdminTab } from '@/lib/store'
 

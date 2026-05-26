@@ -159,11 +159,11 @@ export async function PUT(
         updateData.igstAmount = igstAmount ?? Math.round(totalIgst * 100) / 100
         updateData.totalGst =
           Math.round(
-            (updateData.cgstAmount + updateData.sgstAmount + updateData.igstAmount) * 100
+            ((updateData.cgstAmount as number) + (updateData.sgstAmount as number) + (updateData.igstAmount as number)) * 100
           ) / 100
         updateData.amount =
           Math.round(
-            (updateData.subtotal + updateData.totalGst - updateData.discountAmount) * 100
+            ((updateData.subtotal as number) + (updateData.totalGst as number) - (updateData.discountAmount as number)) * 100
           ) / 100
       }
     }

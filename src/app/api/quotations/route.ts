@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If leadId is provided, fetch the lead
-    let lead = null
+    let lead: any = null
     if (leadId) {
       lead = await db.lead.findUnique({ where: { id: leadId } })
       if (!lead) {
