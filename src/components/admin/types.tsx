@@ -12,7 +12,7 @@ import {
   FolderOpen, Clock4, UsersRound, Lock, Gauge,
   Filter, Megaphone, Webhook, FormInput, Database,
   TrendingDown, Timer, CalendarClock, FileSpreadsheet,
-  ArrowRight, LayoutGrid, Send,
+  ArrowRight, LayoutGrid, Send, Zap,
 } from 'lucide-react'
 import type { AdminTab } from '@/lib/store'
 
