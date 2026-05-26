@@ -29,6 +29,7 @@ model User {
   wishlistItems    WishlistItem[]
   assignedLeads    Lead[]              @relation("AssignedLeads")
   assignedTickets  ServiceRequest[]    @relation("AssignedTechnician")
+  assignedDeals    PipelineDeal[]      @relation("DealAssignee")
   activityLogs     ActivityLog[]
 }
 
@@ -186,7 +187,10 @@ model Lead {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  quotations Quotation[]
+  quotations     Quotation[]
+  companyRef     Company?   @relation(fields: [companyId], references: [id])
+  companyId      String?
+  deals          PipelineDeal[]
 }
 
 model Quotation {
@@ -249,10 +253,14 @@ model Employee {
   status       String   @default("active") // active, on_leave, terminated
   bankDetails  String?  // JSON
   documents    String?  // JSON array
-  attendance   Attendance[]
-  tasks        Task[]
-  salarySlips  SalarySlip[]
-  leaves       Leave[]
+  attendance      Attendance[]
+  tasks           Task[]
+  salarySlips     SalarySlip[]
+  leaves          Leave[]
+  performanceReviews PerformanceReview[]
+  appraisals      Appraisal[]
+  workReports     WorkReport[]
+  assets          Asset[]
 }
 
 model Attendance {
@@ -378,4 +386,337 @@ model AmcQuote {
   emailSent       Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// ═══════════════════════════════════════════════════════════
+// CRM MODELS
+// ═══════════════════════════════════════════════════════════
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  industry    String?
+  website     String?
+  phone       String?
+  email       String?
+  address     String?
+  gstNumber   String?
+  revenue     Float    @default(0)
+  status      String   @default("prospect") // prospect, active, inactive
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  leads       Lead[]
+}
+
+model Pipeline {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  isDefault   Boolean  @default(false)
+  stages      String   @default("[]") // JSON: [{id,name,order,color}]
+  status      String   @default("active")
+  deals       PipelineDeal[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PipelineDeal {
+  id          String   @id @default(cuid())
+  pipelineId  String
+  pipeline    Pipeline @relation(fields: [pipelineId], references: [id])
+  leadId      String?
+  lead        Lead?    @relation(fields: [leadId], references: [id])
+  title       String
+  value       Float    @default(0)
+  stage       String   // stage name from pipeline stages JSON
+  probability Int      @default(50)
+  assigneeId  String?
+  assignee    User?    @relation("DealAssignee", fields: [assigneeId], references: [id])
+  closeDate   DateTime?
+  status      String   @default("open") // open, won, lost
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  body        String   // HTML content
+  category    String   @default("general") // general, followup, quotation, nurture
+  variables   String   @default("[]") // JSON: ["name","company","email"]
+  usageCount  Int      @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailSequence {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  triggerType String   @default("manual") // manual, lead_created, status_changed
+  status      String   @default("active")
+  steps       EmailSequenceStep[]
+  enrollments EmailSequenceEnrollment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailSequenceStep {
+  id           String        @id @default(cuid())
+  sequenceId   String
+  sequence     EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  templateId   String?
+  subject      String
+  body         String
+  delayDays    Int           @default(0)
+  order        Int           @default(0)
+}
+
+model EmailSequenceEnrollment {
+  id          String        @id @default(cuid())
+  sequenceId  String
+  sequence    EmailSequence @relation(fields: [sequenceId], references: [id])
+  leadId      String?
+  leadEmail   String
+  currentStep Int           @default(0)
+  status      String        @default("active") // active, completed, paused
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model LeadSource {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("organic") // organic, paid, referral, social
+  cost        Float    @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Integration {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   @default("crm") // crm, email, accounting, analytics
+  config      String   @default("{}") // JSON config
+  status      String   @default("disconnected") // connected, disconnected, error
+  lastSync    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  leadId      String?
+  channel     String   @default("email") // email, phone, whatsapp, chat
+  subject     String?
+  status      String   @default("open") // open, closed
+  assigneeId  String?
+  messages    ConversationMessage[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ConversationMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderType     String       @default("contact") // contact, agent, system
+  senderName     String
+  content        String
+  createdAt      DateTime     @default(now())
+}
+
+model CrmForm {
+  id          String   @id @default(cuid())
+  name        String
+  fields      String   @default("[]") // JSON: [{name,type,label,required,options}]
+  submissions Int      @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CrmImport {
+  id          String   @id @default(cuid())
+  fileName    String
+  source      String   @default("csv") // csv, excel, api
+  records     Int      @default(0)
+  successful  Int      @default(0)
+  failed      Int      @default(0)
+  status      String   @default("pending") // pending, processing, completed, failed
+  errors      String?  // JSON error details
+  createdAt   DateTime @default(now())
+}
+
+// ═══════════════════════════════════════════════════════════
+// HRM MODELS
+// ═══════════════════════════════════════════════════════════
+
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  head        String?
+  budget      Float    @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Designation {
+  id          String   @id @default(cuid())
+  name        String
+  level       Int      @default(1)
+  minSalary   Float    @default(0)
+  maxSalary   Float    @default(0)
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Holiday {
+  id          String   @id @default(cuid())
+  name        String
+  date        DateTime
+  type        String   @default("public") // public, optional, company
+  createdAt   DateTime @default(now())
+}
+
+model Notice {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  priority    String   @default("normal") // normal, high, urgent
+  postedBy    String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model JobOpening {
+  id            String   @id @default(cuid())
+  title         String
+  department    String
+  type          String   @default("full-time") // full-time, part-time, contract, internship
+  experience    String?
+  salaryRange   String?
+  description   String?
+  requirements  String?
+  location      String?
+  status        String   @default("open") // open, closed, on_hold
+  applications  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Interview {
+  id          String   @id @default(cuid())
+  candidateName  String
+  candidateEmail String?
+  candidatePhone String?
+  position    String
+  date        DateTime
+  interviewer String?
+  rating      Float    @default(0)
+  feedback    String?
+  status      String   @default("scheduled") // scheduled, completed, cancelled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model PerformanceReview {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewerId  String?
+  period      String   // e.g. "Q1 2025"
+  score       Float    @default(0)
+  goals       String?  // JSON
+  feedback    String?
+  status      String   @default("pending") // pending, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Appraisal {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycle       String   // e.g. "Annual 2025"
+  rating      Float    @default(0)
+  hikePercent Float    @default(0)
+  newSalary   Float    @default(0)
+  comments    String?
+  status      String   @default("pending") // pending, approved, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TrainingProgram {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("internal") // internal, external, online
+  duration    String?
+  trainer     String?
+  enrolled    Int      @default(0)
+  maxSeats    Int      @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String   @default("upcoming") // upcoming, ongoing, completed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Asset {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("electronics") // electronics, furniture, vehicle, equipment
+  serialNo    String?
+  value       Float    @default(0)
+  assignedTo  String?
+  assignee    Employee? @relation(fields: [assignedTo], references: [id])
+  purchaseDate DateTime?
+  status      String   @default("available") // available, assigned, maintenance, retired
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Shift {
+  id          String   @id @default(cuid())
+  name        String
+  startTime   String   // e.g. "09:00"
+  endTime     String   // e.g. "18:00"
+  breakDuration Int    @default(30) // minutes
+  employees   Int      @default(0)
+  supervisor  String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WorkReport {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date        DateTime
+  hours       Float    @default(8)
+  tasks       String?  // JSON array of task descriptions
+  summary     String?
+  status      String   @default("submitted") // submitted, reviewed, approved
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  leadId      String?
+  members     Int      @default(0)
+  department  String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

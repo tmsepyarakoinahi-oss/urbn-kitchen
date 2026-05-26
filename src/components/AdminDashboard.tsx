@@ -34,6 +34,7 @@ import InquiriesTab from './admin/InquiriesTab'
 import SettingsTab from './admin/SettingsTab'
 import ActivityTab from './admin/ActivityTab'
 import CrmModules from './admin/CrmModules'
+import HrmModules from './admin/HrmModulesNew'
 import Dialogs from './admin/Dialogs'
 
 export default function AdminDashboard() {
@@ -175,7 +176,7 @@ export default function AdminDashboard() {
   useEffect(() => { if (adminTab === 'amc' || adminTab === 'service') doFetchAmc() }, [adminTab, doFetchAmc])
   useEffect(() => { if (adminTab === 'quotations') fetch('/api/quotations?limit=50').then(r => r.json()).then(j => { if (j.status) setQuotationList(j.data.quotations || j.data || []) }).catch(console.error) }, [adminTab])
   useEffect(() => { if (adminTab === 'customers') doFetchUsers() }, [adminTab, doFetchUsers])
-  useEffect(() => { if (adminTab === 'attendance') fetch('/api/attendance?limit=50').then(r => r.json()).then(j => { if (j.status) setAttendanceRecords(j.data.attendance || j.data || []) }).catch(console.error) }, [adminTab])
+  useEffect(() => { if (adminTab === 'attendance') fetch('/api/attendance?limit=50').then(r => r.json()).then(j => { if (j.status) setAttendanceRecords(j.data.records || j.data.attendance || j.data || []) }).catch(console.error) }, [adminTab])
   useEffect(() => { if (adminTab === 'leaves') { const params = leaveFilter !== 'all' ? `?status=${leaveFilter}` : ''; fetch(`/api/leaves${params}`).then(r => r.json()).then(j => { if (j.status) setLeaveList(j.data.leaves || j.data || []) }).catch(console.error) } }, [adminTab, leaveFilter])
   useEffect(() => { if (adminTab === 'inquiries') fetch('/api/inquiries?limit=50').then(r => r.json()).then(j => { if (j.status) setInquiryList(j.data.inquiries || j.data || []) }).catch(console.error) }, [adminTab])
   useEffect(() => { if (adminTab === 'settings') fetch('/api/settings').then(r => r.json()).then(j => { if (j.status) setSettingsObj(j.data || {}) }).catch(console.error) }, [adminTab])
@@ -267,8 +268,14 @@ export default function AdminDashboard() {
       case 'settings': return <SettingsTab settingsObj={settingsObj} setSettingsObj={setSettingsObj} settingsLoading={settingsLoading} />
       case 'activity': return <ActivityTab activityList={activityList} />
       default: {
-        const crmResult = <CrmModules adminTab={adminTab} leads={leads} employees={employees} />
-        if (crmResult) return crmResult
+        // Check if it's a CRM tab
+        if (adminTab.startsWith('crm-')) {
+          return <CrmModules adminTab={adminTab} leads={leads} employees={employees} />
+        }
+        // Check if it's an HRM tab
+        if (adminTab.startsWith('hrm-')) {
+          return <HrmModules adminTab={adminTab} employees={employees} />
+        }
         return <DashboardTab dashboardData={dashboardData} openOrderDetail={openOrderDetail} openLeadDetail={openLeadDetail} />
       }
     }
