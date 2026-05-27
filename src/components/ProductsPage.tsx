@@ -60,6 +60,7 @@ interface Product {
   leadTime?: string | null
   featured?: boolean
   category: { id: string; name: string; slug: string }
+  featuredImage?: string | null
   images?: { image: string }[]
   variants?: ProductVariant[]
   priceRange?: { min: number; max: number }
@@ -168,7 +169,7 @@ export default function ProductsPage() {
       name: product.name,
       price: effectiveVariant ? effectiveVariant.price : product.price,
       qty: 1,
-      image: null,
+      image: product.featuredImage || null,
       stock: effectiveVariant ? effectiveVariant.stock : product.stock,
       variantId: effectiveVariant?.id || null,
       variantName: effectiveVariant?.name || null,
@@ -347,7 +348,11 @@ export default function ProductsPage() {
                   >
                     {/* Image */}
                     <div className="relative h-48 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
-                      <Flame className="w-12 h-12 text-gray-700" />
+                      {product.featuredImage ? (
+                        <img src={product.featuredImage} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Flame className="w-12 h-12 text-gray-700" />
+                      )}
                       
                       {/* Overlay */}
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -506,8 +511,12 @@ export default function ProductsPage() {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
                 {/* Image */}
-                <div className="h-64 bg-[#1a1a1a] rounded-xl flex items-center justify-center">
-                  <Flame className="w-16 h-16 text-gray-700" />
+                <div className="h-64 bg-[#1a1a1a] rounded-xl flex items-center justify-center overflow-hidden">
+                  {quickViewProduct.featuredImage ? (
+                    <img src={quickViewProduct.featuredImage} alt={quickViewProduct.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <Flame className="w-16 h-16 text-gray-700" />
+                  )}
                 </div>
                 {/* Details */}
                 <div className="flex flex-col">

@@ -103,8 +103,12 @@ export default function CartPage() {
                   className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4 sm:p-5 flex gap-4"
                 >
                   {/* Image */}
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#1a1a1a] rounded-lg flex items-center justify-center shrink-0">
-                    <ShoppingBag className="w-8 h-8 text-gray-700" />
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#1a1a1a] rounded-lg flex items-center justify-center shrink-0 overflow-hidden">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <ShoppingBag className="w-8 h-8 text-gray-700" />
+                    )}
                   </div>
 
                   {/* Details */}

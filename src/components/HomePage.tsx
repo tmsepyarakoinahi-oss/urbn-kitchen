@@ -94,6 +94,7 @@ interface Product {
   capacity?: string | null
   stock: number
   featured?: boolean
+  featuredImage?: string | null
   category: { id: string; name: string; slug: string }
   images?: { image: string }[]
 }
@@ -153,7 +154,7 @@ export default function HomePage() {
       name: product.name,
       price: product.price,
       qty: 1,
-      image: null,
+      image: product.featuredImage || null,
       stock: product.stock,
     })
     toast.success(`${product.name} added to cart`)
@@ -349,9 +350,13 @@ export default function HomePage() {
                 >
                   {/* Image */}
                   <div className="relative h-48 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
-                    <div className="text-gray-700">
-                      <Flame className="w-12 h-12" />
-                    </div>
+                    {product.featuredImage ? (
+                      <img src={product.featuredImage} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-gray-700">
+                        <Flame className="w-12 h-12" />
+                      </div>
+                    )}
                     {/* Overlay on hover */}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                       <Button

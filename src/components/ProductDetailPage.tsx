@@ -57,6 +57,7 @@ interface Product {
   leadTime?: string | null
   featured?: boolean
   category: { id: string; name: string; slug: string }
+  featuredImage?: string | null
   images?: { image: string }[]
   variants?: ProductVariant[]
   priceRange?: { min: number; max: number }
@@ -71,6 +72,7 @@ interface RelatedProduct {
   stock: number
   steelGrade?: string | null
   capacity?: string | null
+  featuredImage?: string | null
 }
 
 export default function ProductDetailPage() {
@@ -128,7 +130,7 @@ export default function ProductDetailPage() {
       name: product.name,
       price: selectedVariant ? selectedVariant.price : product.price,
       qty,
-      image: null,
+      image: product.featuredImage || null,
       stock: selectedVariant ? selectedVariant.stock : product.stock,
       variantId: selectedVariant?.id || null,
       variantName: selectedVariant?.name || null,
@@ -188,7 +190,11 @@ export default function ProductDetailPage() {
             transition={{ duration: 0.5 }}
           >
             <div className="relative h-72 sm:h-96 lg:h-[500px] bg-[#151515] border border-[#2a2a2a] rounded-xl flex items-center justify-center overflow-hidden">
-              <Flame className="w-24 h-24 text-gray-700" />
+              {(product as any).featuredImage ? (
+                <img src={(product as any).featuredImage} alt={product.name} className="w-full h-full object-cover" />
+              ) : (
+                <Flame className="w-24 h-24 text-gray-700" />
+              )}
               {product.featured && (
                 <Badge className="absolute top-4 right-4 bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30">
                   Featured
@@ -419,8 +425,12 @@ export default function ProductDetailPage() {
                   onClick={() => setProductDetail(rp.id)}
                   className="group bg-[#151515] border border-[#2a2a2a] rounded-xl overflow-hidden hover:border-[#59ff00]/30 hover-lift transition-all text-left"
                 >
-                  <div className="h-36 bg-[#1a1a1a] flex items-center justify-center">
-                    <Flame className="w-10 h-10 text-gray-700" />
+                  <div className="h-36 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
+                    {(rp as any).featuredImage ? (
+                      <img src={(rp as any).featuredImage} alt={rp.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Flame className="w-10 h-10 text-gray-700" />
+                    )}
                   </div>
                   <div className="p-4">
                     <h3 className="text-white text-sm font-semibold line-clamp-2 group-hover:text-[#59ff00] transition-colors">
