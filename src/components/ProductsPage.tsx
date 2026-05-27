@@ -13,6 +13,31 @@ import {
   ChevronDown,
   Package,
 } from 'lucide-react'
+
+// Category emoji mapping
+const CATEGORY_EMOJIS: Record<string, string> = {
+  'preparation-equipment': '🔪',
+  'cooking-equipment': '🔥',
+  'serving-equipment': '🍽️',
+  'washing-equipment': '🧼',
+  'storage-equipment': '📦',
+  'refrigeration-equipment': '❄️',
+  'bakery-equipment': '🍞',
+  'display-equipment': '🏪',
+  'food-carts': '🛒',
+}
+
+const CATEGORY_NAMES: Record<string, string> = {
+  'preparation-equipment': 'Preparation Equipment',
+  'cooking-equipment': 'Cooking Equipment',
+  'serving-equipment': 'Serving Equipment',
+  'washing-equipment': 'Washing Equipment',
+  'storage-equipment': 'Storage Equipment',
+  'refrigeration-equipment': 'Refrigeration Equipment',
+  'bakery-equipment': 'Bakery Equipment',
+  'display-equipment': 'Display Equipment',
+  'food-carts': 'Food Carts',
+}
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -351,7 +376,10 @@ export default function ProductsPage() {
                       {product.featuredImage ? (
                         <img src={product.featuredImage} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
-                        <Flame className="w-12 h-12 text-gray-700" />
+                        <div className="flex flex-col items-center gap-2">
+                          <span className="text-5xl">{CATEGORY_EMOJIS[product.category.slug] || '🔧'}</span>
+                          <span className="text-gray-600 text-xs">{product.category.name}</span>
+                        </div>
                       )}
                       
                       {/* Overlay */}
@@ -368,7 +396,7 @@ export default function ProductsPage() {
 
                       {/* Badges */}
                       <Badge className="absolute top-3 left-3 bg-[#0b0b0b]/80 text-gray-300 border-[#2a2a2a] text-xs">
-                        {product.category.name}
+                        {CATEGORY_EMOJIS[product.category.slug] || ''} {product.category.name}
                       </Badge>
                       
                       <div className="absolute top-3 right-3">
@@ -515,13 +543,16 @@ export default function ProductsPage() {
                   {quickViewProduct.featuredImage ? (
                     <img src={quickViewProduct.featuredImage} alt={quickViewProduct.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Flame className="w-16 h-16 text-gray-700" />
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-6xl">{CATEGORY_EMOJIS[quickViewProduct.category.slug] || '🔧'}</span>
+                      <span className="text-gray-600 text-xs">{quickViewProduct.category.name}</span>
+                    </div>
                   )}
                 </div>
                 {/* Details */}
                 <div className="flex flex-col">
                   <Badge className="w-fit bg-[#59ff00]/10 text-[#59ff00] border-[#59ff00]/20 mb-3">
-                    {quickViewProduct.category.name}
+                    {CATEGORY_EMOJIS[quickViewProduct.category.slug] || ''} {quickViewProduct.category.name}
                   </Badge>
                   
                   <span className="font-[family-name:var(--font-poppins)] text-[#59ff00] text-2xl font-bold mb-3">

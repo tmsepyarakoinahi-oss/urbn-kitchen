@@ -69,6 +69,7 @@ model Product {
   slug            String          @unique
   description     String
   shortDescription String?
+  longDescription  String?  // Rich detailed description for product detail page
   price           Float
   steelGrade      String?
   capacity        String?

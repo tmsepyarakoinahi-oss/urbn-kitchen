@@ -256,6 +256,7 @@ export default function Dialogs(props: DialogsProps) {
             </div>
             <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Short Description</Label><Input className="bg-[#0b0b0b] border-[#2a2a2a] text-white" placeholder="Brief product description" value={productForm.shortDescription} onChange={(e) => setProductForm(p => ({ ...p, shortDescription: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Description *</Label><Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={3} value={productForm.description} onChange={(e) => setProductForm(p => ({ ...p, description: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Long Description</Label><Textarea className="bg-[#0b0b0b] border-[#2a2a2a] text-white" rows={5} placeholder="Detailed product description for the product detail page. Supports line breaks for rich formatting." value={productForm.longDescription} onChange={(e) => setProductForm(p => ({ ...p, longDescription: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Stock</Label><Input type="number" className="bg-[#0b0b0b] border-[#2a2a2a] text-white" value={productForm.stock} onChange={(e) => setProductForm(p => ({ ...p, stock: e.target.value }))} /></div>
               <div className="space-y-1.5"><Label className="text-gray-300 text-sm">Status</Label>

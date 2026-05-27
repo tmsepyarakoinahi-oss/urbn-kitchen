@@ -47,6 +47,7 @@ export interface ProductForm {
   categoryId: string
   description: string
   shortDescription: string
+  longDescription: string
   price: string
   stock: string
   status: string
@@ -98,7 +99,7 @@ export interface QuotationItem {
 
 // ─── Empty Forms ───────────────────────────────────────────
 export const emptyProductForm: ProductForm = {
-  name: '', categoryId: '', description: '', shortDescription: '', price: '',
+  name: '', categoryId: '', description: '', shortDescription: '', longDescription: '', price: '',
   stock: '', status: 'active', steelGrade: '', capacity: '', dimensions: '',
   moq: '', leadTime: '', featuredImage: '', featured: false,
 }

@@ -35,12 +35,34 @@ const formatPrice = (price: number) => {
 }
 
 const categoryIcons: Record<string, React.ReactNode> = {
-  'commercial-burners': <Flame className="w-7 h-7" />,
-  'cooking-ranges': <ChefHat className="w-7 h-7" />,
-  'refrigeration': <Snowflake className="w-7 h-7" />,
-  'food-preparation': <UtensilsCrossed className="w-7 h-7" />,
-  'dishwashing': <Droplets className="w-7 h-7" />,
-  'display-counters': <Monitor className="w-7 h-7" />,
+  'preparation-equipment': <span className="text-3xl">🔪</span>,
+  'cooking-equipment': <span className="text-3xl">🔥</span>,
+  'serving-equipment': <span className="text-3xl">🍽️</span>,
+  'washing-equipment': <span className="text-3xl">🧼</span>,
+  'storage-equipment': <span className="text-3xl">📦</span>,
+  'refrigeration-equipment': <span className="text-3xl">❄️</span>,
+  'bakery-equipment': <span className="text-3xl">🍞</span>,
+  'display-equipment': <span className="text-3xl">🏪</span>,
+  'food-carts': <span className="text-3xl">🛒</span>,
+  // Legacy slugs for backward compatibility
+  'commercial-burners': <span className="text-3xl">🔥</span>,
+  'cooking-ranges': <span className="text-3xl">🔥</span>,
+  'refrigeration': <span className="text-3xl">❄️</span>,
+  'food-preparation': <span className="text-3xl">🔪</span>,
+  'dishwashing': <span className="text-3xl">🧼</span>,
+  'display-counters': <span className="text-3xl">🏪</span>,
+}
+
+const CATEGORY_EMOJIS: Record<string, string> = {
+  'preparation-equipment': '🔪',
+  'cooking-equipment': '🔥',
+  'serving-equipment': '🍽️',
+  'washing-equipment': '🧼',
+  'storage-equipment': '📦',
+  'refrigeration-equipment': '❄️',
+  'bakery-equipment': '🍞',
+  'display-equipment': '🏪',
+  'food-carts': '🛒',
 }
 
 /* ─── Counter animation component ─── */
@@ -284,7 +306,7 @@ export default function HomePage() {
                 className="group relative bg-[#151515] border border-[#2a2a2a] rounded-xl p-5 md:p-6 text-center hover:border-[#59ff00]/40 hover-lift transition-all"
               >
                 <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-[#59ff00]/10 flex items-center justify-center text-[#59ff00] group-hover:bg-[#59ff00]/20 transition-colors">
-                  {categoryIcons[cat.slug] || <Flame className="w-7 h-7" />}
+                  {categoryIcons[cat.slug] || <span className="text-3xl">🔧</span>}
                 </div>
                 <h3 className="text-white text-sm font-semibold group-hover:text-[#59ff00] transition-colors">
                   {cat.name}
@@ -353,8 +375,9 @@ export default function HomePage() {
                     {product.featuredImage ? (
                       <img src={product.featuredImage} alt={product.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="text-gray-700">
-                        <Flame className="w-12 h-12" />
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="text-5xl">{CATEGORY_EMOJIS[product.category.slug] || '🔧'}</span>
+                        <span className="text-gray-600 text-xs">{product.category.name}</span>
                       </div>
                     )}
                     {/* Overlay on hover */}
@@ -370,7 +393,7 @@ export default function HomePage() {
                     </div>
                     {/* Category badge */}
                     <Badge className="absolute top-3 left-3 bg-[#0b0b0b]/80 text-gray-300 border-[#2a2a2a] text-xs">
-                      {product.category.name}
+                      {CATEGORY_EMOJIS[product.category.slug] || ''} {product.category.name}
                     </Badge>
                     {product.featured && (
                       <Badge className="absolute top-3 right-3 bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30 text-xs">

@@ -13,6 +13,10 @@ import {
   Clock,
   Shield,
   Truck,
+  CheckCircle2,
+  Info,
+  FileText,
+  ListChecks,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -48,6 +52,7 @@ interface Product {
   slug: string
   description: string
   shortDescription?: string | null
+  longDescription?: string | null
   price: number
   steelGrade?: string | null
   capacity?: string | null
@@ -73,6 +78,19 @@ interface RelatedProduct {
   steelGrade?: string | null
   capacity?: string | null
   featuredImage?: string | null
+}
+
+// Category emoji map
+const CATEGORY_EMOJIS: Record<string, string> = {
+  'Preparation Equipment': '🔪',
+  'Cooking Equipment': '🔥',
+  'Serving Equipment': '🍽️',
+  'Washing Equipment': '🧼',
+  'Storage Equipment': '📦',
+  'Refrigeration Equipment': '❄️',
+  'Bakery Equipment': '🍞',
+  'Display Equipment': '🏪',
+  'Food Carts': '🛒',
 }
 
 export default function ProductDetailPage() {
@@ -170,6 +188,13 @@ export default function ProductDetailPage() {
     )
   }
 
+  const categoryEmoji = CATEGORY_EMOJIS[product.category.name] || '🔧'
+
+  // Determine what description content to show
+  const hasShortDesc = !!product.shortDescription
+  const hasLongDesc = !!product.longDescription
+  const hasBasicDesc = !!product.description
+
   return (
     <div className="min-h-screen bg-[#0b0b0b] pt-20 md:pt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -193,13 +218,19 @@ export default function ProductDetailPage() {
               {(product as any).featuredImage ? (
                 <img src={(product as any).featuredImage} alt={product.name} className="w-full h-full object-cover" />
               ) : (
-                <Flame className="w-24 h-24 text-gray-700" />
+                <div className="flex flex-col items-center gap-3">
+                  <span className="text-6xl">{categoryEmoji}</span>
+                  <span className="text-gray-500 text-sm">No image available</span>
+                </div>
               )}
               {product.featured && (
                 <Badge className="absolute top-4 right-4 bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30">
                   Featured
                 </Badge>
               )}
+              <Badge className="absolute top-4 left-4 bg-[#0b0b0b]/80 text-gray-300 border-[#2a2a2a]">
+                {categoryEmoji} {product.category.name}
+              </Badge>
             </div>
           </motion.div>
 
@@ -210,9 +241,9 @@ export default function ProductDetailPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="flex flex-col"
           >
-            {/* Category */}
+            {/* Category with emoji */}
             <Badge className="w-fit bg-[#59ff00]/10 text-[#59ff00] border-[#59ff00]/20 mb-3">
-              {product.category.name}
+              {categoryEmoji} {product.category.name}
             </Badge>
 
             {/* Name */}
@@ -221,8 +252,8 @@ export default function ProductDetailPage() {
             </h1>
 
             {/* Short Description */}
-            {product.shortDescription && (
-              <p className="text-gray-400 text-sm mb-4">{product.shortDescription}</p>
+            {hasShortDesc && (
+              <p className="text-gray-400 text-sm mb-4 leading-relaxed">{product.shortDescription}</p>
             )}
 
             {/* Price */}
@@ -358,35 +389,79 @@ export default function ProductDetailPage() {
           </motion.div>
         </div>
 
-        {/* ─── TABS: DESCRIPTION & SPECS ─── */}
+        {/* ─── TABS: DESCRIPTION, LONG DESCRIPTION & SPECS ─── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="mt-12"
         >
-          <Tabs defaultValue="description" className="w-full">
+          <Tabs defaultValue={hasLongDesc ? 'long-description' : 'description'} className="w-full">
             <TabsList className="bg-[#151515] border border-[#2a2a2a] p-1 h-auto">
               <TabsTrigger value="description" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
-                Description
+                <Info className="w-4 h-4 mr-1.5" />
+                Overview
               </TabsTrigger>
+              {hasLongDesc && (
+                <TabsTrigger value="long-description" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
+                  <FileText className="w-4 h-4 mr-1.5" />
+                  Full Details
+                </TabsTrigger>
+              )}
               <TabsTrigger value="specifications" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
+                <ListChecks className="w-4 h-4 mr-1.5" />
                 Specifications
               </TabsTrigger>
             </TabsList>
+
+            {/* Overview / Basic Description */}
             <TabsContent value="description" className="mt-6">
               <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-6">
-                <p className="text-gray-400 leading-relaxed whitespace-pre-line">
-                  {product.description}
-                </p>
+                {hasShortDesc && (
+                  <div className="mb-4 pb-4 border-b border-[#2a2a2a]">
+                    <h3 className="text-[#59ff00] text-sm font-semibold mb-2 flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Quick Summary
+                    </h3>
+                    <p className="text-gray-300 text-sm leading-relaxed">{product.shortDescription}</p>
+                  </div>
+                )}
+                {hasBasicDesc ? (
+                  <div>
+                    <h3 className="text-white text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Info className="w-4 h-4 text-gray-400" />
+                      Product Overview
+                    </h3>
+                    <p className="text-gray-400 leading-relaxed whitespace-pre-line">{product.description}</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm italic">No description available.</p>
+                )}
               </div>
             </TabsContent>
+
+            {/* Long Description / Full Details */}
+            {hasLongDesc && (
+              <TabsContent value="long-description" className="mt-6">
+                <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-6">
+                  <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-[#59ff00]" />
+                    {product.name} — Full Details
+                  </h3>
+                  <div className="text-gray-400 leading-relaxed whitespace-pre-line text-sm">
+                    {product.longDescription}
+                  </div>
+                </div>
+              </TabsContent>
+            )}
+
+            {/* Specifications */}
             <TabsContent value="specifications" className="mt-6">
               <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <tbody>
                     {[
-                      { label: 'Category', value: product.category.name },
+                      { label: 'Category', value: `${categoryEmoji} ${product.category.name}` },
                       { label: 'Steel Grade', value: product.steelGrade || 'N/A' },
                       { label: 'Capacity', value: product.capacity || 'N/A' },
                       { label: 'Dimensions', value: selectedVariant?.dimensions || product.dimensions || 'N/A' },
@@ -419,29 +494,32 @@ export default function ProductDetailPage() {
               Related <span className="text-[#59ff00]">Products</span>
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {related.map((rp) => (
-                <button
-                  key={rp.id}
-                  onClick={() => setProductDetail(rp.id)}
-                  className="group bg-[#151515] border border-[#2a2a2a] rounded-xl overflow-hidden hover:border-[#59ff00]/30 hover-lift transition-all text-left"
-                >
-                  <div className="h-36 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
-                    {(rp as any).featuredImage ? (
-                      <img src={(rp as any).featuredImage} alt={rp.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Flame className="w-10 h-10 text-gray-700" />
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-white text-sm font-semibold line-clamp-2 group-hover:text-[#59ff00] transition-colors">
-                      {rp.name}
-                    </h3>
-                    <span className="font-[family-name:var(--font-poppins)] text-[#59ff00] font-bold text-sm mt-1 block">
-                      {formatPrice(rp.price)}
-                    </span>
-                  </div>
-                </button>
-              ))}
+              {related.map((rp) => {
+                const rpEmoji = CATEGORY_EMOJIS[rp.category.name] || '🔧'
+                return (
+                  <button
+                    key={rp.id}
+                    onClick={() => setProductDetail(rp.id)}
+                    className="group bg-[#151515] border border-[#2a2a2a] rounded-xl overflow-hidden hover:border-[#59ff00]/30 hover-lift transition-all text-left"
+                  >
+                    <div className="h-36 bg-[#1a1a1a] flex items-center justify-center overflow-hidden">
+                      {(rp as any).featuredImage ? (
+                        <img src={(rp as any).featuredImage} alt={rp.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-4xl">{rpEmoji}</span>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-white text-sm font-semibold line-clamp-2 group-hover:text-[#59ff00] transition-colors">
+                        {rp.name}
+                      </h3>
+                      <span className="font-[family-name:var(--font-poppins)] text-[#59ff00] font-bold text-sm mt-1 block">
+                        {formatPrice(rp.price)}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           </motion.div>
         )}

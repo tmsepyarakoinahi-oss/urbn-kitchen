@@ -72,7 +72,7 @@ export async function PUT(
     }
 
     const updateData: Record<string, unknown> = {}
-    const allowedFields = ['name', 'slug', 'categoryId', 'description', 'shortDescription', 'price', 'steelGrade', 'capacity', 'dimensions', 'stock', 'moq', 'leadTime', 'featuredImage', 'status', 'featured', 'variants']
+    const allowedFields = ['name', 'slug', 'categoryId', 'description', 'shortDescription', 'longDescription', 'price', 'steelGrade', 'capacity', 'dimensions', 'stock', 'moq', 'leadTime', 'featuredImage', 'status', 'featured', 'variants']
 
     for (const field of allowedFields) {
       if (field === 'variants') continue // Handle variants separately
