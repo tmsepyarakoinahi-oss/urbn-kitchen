@@ -373,7 +373,7 @@ export default function OrderSuccessPage() {
           >
             <div className="flex items-center gap-2 text-gray-400">
               <Phone className="w-4 h-4 text-[#59ff00]" />
-              <span>Need help? Contact us at <span className="text-white font-medium">+91-11-45678900</span></span>
+              <span>Need help? Contact us at <span className="text-white font-medium">+91-7080488840</span></span>
             </div>
             <Separator orientation="vertical" className="h-4 bg-[#2a2a2a] hidden sm:block" />
             <div className="flex items-center gap-2 text-gray-400">

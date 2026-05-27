@@ -839,11 +839,11 @@ export default function AmcPage() {
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <a
-              href="tel:+911145678900"
+              href="tel:+917080488840"
               className="text-gray-400 hover:text-[#59ff00] text-sm flex items-center gap-2 transition-colors"
             >
               <Phone className="w-4 h-4" />
-              +91-11-45678900
+              +91-7080488840
             </a>
           </div>
         </motion.div>
@@ -1065,7 +1065,7 @@ export default function AmcPage() {
                   Done
                 </Button>
                 <a
-                  href="tel:+911145678900"
+                  href="tel:+917080488840"
                   className="text-gray-400 hover:text-[#59ff00] text-sm flex items-center gap-2 transition-colors"
                 >
                   <Phone className="w-4 h-4" />

@@ -174,7 +174,7 @@ export async function sendAmcQuoteConfirmation(data: AmcQuoteEmailData): Promise
           <p style="margin: 4px 0 0; color: #59ff00; font-size: 18px; font-weight: 700;">#AMC-${Date.now().toString(36).toUpperCase()}</p>
         </div>
         <p style="color: #9ca3af; font-size: 14px; line-height: 1.6;">
-          If you need immediate assistance, call us at <a href="tel:+911145678900" style="color: #59ff00;">+91-11-45678900</a> 
+          If you need immediate assistance, call us at <a href="tel:+917080488840" style="color: #59ff00;">+91-7080488840</a> 
           or email <a href="mailto:info@urbankitchens.com" style="color: #59ff00;">info@urbankitchens.com</a>.
         </p>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
-import { Phone, Mail, MapPin, Facebook, Instagram, Twitter, Linkedin, ArrowRight } from 'lucide-react'
+import { Phone, Mail, MapPin, Facebook, Instagram, Twitter, Linkedin, ArrowRight, MessageCircle } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,9 +61,13 @@ export default function Footer() {
               Engineering excellence for hotels, restaurants, and catering businesses since 2009.
             </p>
             <div className="flex flex-col gap-2">
-              <a href="tel:+911145678900" className="flex items-center gap-2 text-gray-500 hover:text-[#59ff00] text-sm transition-colors">
+              <a href="tel:+917080488840" className="flex items-center gap-2 text-gray-500 hover:text-[#59ff00] text-sm transition-colors">
                 <Phone className="w-4 h-4" />
-                +91-11-45678900
+                +91-7080488840
+              </a>
+              <a href="https://wa.me/917080488840" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-gray-500 hover:text-[#59ff00] text-sm transition-colors">
+                <MessageCircle className="w-4 h-4" />
+                WhatsApp: +91-7080488840
               </a>
               <a href="mailto:info@urbankitchens.com" className="flex items-center gap-2 text-gray-500 hover:text-[#59ff00] text-sm transition-colors">
                 <Mail className="w-4 h-4" />

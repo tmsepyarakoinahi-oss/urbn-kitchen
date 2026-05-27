@@ -230,10 +230,10 @@ class QuotationPDFBuilder {
     })
 
     // Company details line
-    const companyAddress = settings.company_address || 'Plot No. 45, Industrial Area, Phase-II, Chandigarh 160002'
-    const companyPhone = settings.company_phone ? `Ph: ${settings.company_phone}` : 'Ph: +91 172 4567890'
-    const companyEmail = settings.company_email ? `Email: ${settings.company_email}` : 'Email: info@urbankitchen.com'
-    const gstNumber = settings.gst_number ? `GSTIN: ${settings.gst_number}` : 'GSTIN: 04AABCU9603R1ZM'
+    const companyAddress = settings.company_address || 'Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020'
+    const companyPhone = settings.company_phone ? `Ph: ${settings.company_phone}` : 'Ph: +91-7080488840'
+    const companyEmail = settings.company_email ? `Email: ${settings.company_email}` : 'Email: info@urbankitchens.com'
+    const gstNumber = settings.gst_number ? `GSTIN: ${settings.gst_number}` : 'GSTIN: 07AABCU9603R1ZM'
 
     this.drawText({
       text: companyAddress,
@@ -478,7 +478,7 @@ class QuotationPDFBuilder {
       { header: 'Unit', width: 35, align: 'center' },
       { header: 'Rate', width: 60, align: 'right' },
       { header: 'Disc%', width: 40, align: 'center' },
-      { header: 'GST%', width: 40, align: 'center' },
+      { header: 'GST(18%)', width: 40, align: 'center' },
       { header: 'Amount', width: 75, align: 'right' },
     ]
 

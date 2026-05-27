@@ -125,7 +125,7 @@ function generateQuotationEmailHtml(
   const bank = parseBankDetails(quotation.bankDetails)
 
   const companyName = settings.company_name || 'Urban Kitchen Manufacturing & Solutions'
-  const companyPhone = settings.company_phone || '+91-11-45678900'
+  const companyPhone = settings.company_phone || '+91-7080488840'
   const companyEmail = settings.company_email || 'info@urbankitchens.com'
   const companyAddress = settings.company_address || 'Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020'
   const companyWebsite = settings.company_website || 'www.urbankitchens.com'
@@ -367,7 +367,7 @@ function generateWhatsAppMessage(
   settings: Record<string, string>
 ): string {
   const items = parseItems(quotation.items)
-  const companyPhone = settings.company_phone || '+91-11-45678900'
+  const companyPhone = settings.company_phone || '+91-7080488840'
   const companyEmail = settings.company_email || 'info@urbankitchens.com'
 
   const itemsBrief =

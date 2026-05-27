@@ -116,7 +116,7 @@ export default function AdminDashboard() {
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null)
   const [sendingQuotation, setSendingQuotation] = useState(false)
   const [quotationTemplate, setQuotationTemplate] = useState<'modern' | 'minimal' | 'corporate' | 'premium'>('modern')
-  const [companyCustomization, setCompanyCustomization] = useState({ logo: '', name: 'Urban Kitchen Manufacturing & Solutions', address: 'Sector 12, Industrial Area, New Delhi', contact: '+91-9876543210', email: 'sales@urbankitchen.com', website: 'www.urbankitchen.com', gstNumber: '07AABCU9603R1ZM', signature: '', terms: '', brandColor: '#59ff00', footerNotes: 'Thank you for your business!' })
+  const [companyCustomization, setCompanyCustomization] = useState({ logo: '', name: 'Urban Kitchen Manufacturing & Solutions', address: 'Sector 12, Industrial Area, New Delhi', contact: '+91-7080488840', email: 'sales@urbankitchen.com', website: 'www.urbankitchen.com', gstNumber: '07AABCU9603R1ZM', signature: '', terms: '', brandColor: '#59ff00', footerNotes: 'Thank you for your business!' })
   const [employeeForm, setEmployeeForm] = useState({ name: '', email: '', phone: '', password: '', department: '', designation: '', salary: '', joiningDate: '' })
   const [amcForm, setAmcForm] = useState({ customerId: '', plan: '', startDate: '', endDate: '', amount: '', coverage: '' })
   const [serviceForm, setServiceForm] = useState({ customerId: '', contractId: '', issue: '', priority: 'medium', assignedTechnician: '' })
@@ -266,6 +266,15 @@ export default function AdminDashboard() {
   const openEditQuotation = async (q: any) => { try { const res = await fetch(`/api/quotations/${q.id}`); const json = await res.json(); if (!json.status) { toast.error('Failed to load quotation'); return } const data = json.data; setEditQuotation(data); setQuotationCustomerName(data.customerName || ''); setQuotationCustomerCompany(data.customerCompany || ''); setQuotationCustomerEmail(data.customerEmail || ''); setQuotationCustomerPhone(data.customerPhone || ''); setQuotationCustomerAddress(data.customerAddress || ''); setQuotationCustomerGst(data.customerGst || ''); const parsedItems = data.items ? (typeof data.items === 'string' ? JSON.parse(data.items) : data.items) : []; setQuotationItems(parsedItems.length > 0 ? parsedItems.map((it: any) => ({ desc: it.desc || '', hsn: it.hsn || '', qty: String(it.qty || '1'), unit: it.unit || 'Nos', rate: String(it.rate || ''), discount: String(it.discount || '0'), gstPercent: String(it.gstPercent || '18') })) : [{ desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }]); setQuotationValidUntil(data.validUntil ? data.validUntil.split('T')[0] : ''); setQuotationNotes(data.notes || ''); setQuotationDeliveryPeriod(data.deliveryPeriod || ''); setQuotationInstallation(data.installation || ''); setQuotationWarranty(data.warranty || ''); setQuotationDialog(true) } catch (e) { console.error(e); toast.error('Failed to load quotation') } }
   const openOrderDetail = (order: any) => { fetch(`/api/orders/${order.id}`).then(r => r.json()).then(j => { if (j.status) { setSelectedOrder(j.data); setOrderDialog(true) } }).catch(console.error) }
   const onOpenQuotationFromLead = () => { setQuotationCustomerName(selectedLead?.name || ''); setQuotationCustomerCompany(selectedLead?.company || ''); setQuotationCustomerEmail(selectedLead?.email || ''); setQuotationCustomerPhone(selectedLead?.phone || ''); setQuotationCustomerAddress(selectedLead?.city ? `${selectedLead.city}, India` : ''); setQuotationCustomerGst(''); setQuotationItems([{ desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }]); setQuotationValidUntil(''); setQuotationNotes(''); setQuotationDeliveryPeriod('2-3 weeks'); setQuotationInstallation('Included'); setQuotationWarranty('12 months against manufacturing defects'); setQuotationDialog(true) }
+
+  // ─── Lead detail refresh hook ──────────────────────────────
+  useEffect(() => {
+    ;(window as any).__refreshLeadDetail = (data: any) => {
+      setSelectedLead(data)
+      doFetchLeads()
+    }
+    return () => { delete (window as any).__refreshLeadDetail }
+  }, [doFetchLeads])
 
   // ─── Role-filtered sidebar groups ──────────────────────────
   const filteredCrmGroup = filterGroupByRole(CRM_GROUP, roleName)

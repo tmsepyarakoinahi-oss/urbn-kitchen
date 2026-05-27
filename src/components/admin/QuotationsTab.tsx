@@ -228,7 +228,7 @@ export default function QuotationsTab({
                       <TableHead className="text-gray-400 text-xs">Description</TableHead>
                       <TableHead className="text-gray-400 text-xs text-right">Qty</TableHead>
                       <TableHead className="text-gray-400 text-xs text-right">Rate</TableHead>
-                      <TableHead className="text-gray-400 text-xs text-right">GST%</TableHead>
+                      <TableHead className="text-gray-400 text-xs text-right">GST (18%)</TableHead>
                       <TableHead className="text-gray-400 text-xs text-right">Amount</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
@@ -238,7 +238,7 @@ export default function QuotationsTab({
                           <TableCell className="text-white text-xs">{item.desc}{item.hsn ? <span className="text-gray-500 ml-1">({item.hsn})</span> : ''}</TableCell>
                           <TableCell className="text-gray-300 text-xs text-right">{item.qty} {item.unit || 'Nos'}</TableCell>
                           <TableCell className="text-gray-300 text-xs text-right">{fmt(item.rate || 0)}</TableCell>
-                          <TableCell className="text-gray-400 text-xs text-right">{item.gstPercent || 0}%</TableCell>
+                          <TableCell className="text-[#59ff00] text-xs text-right">{item.gstPercent || 18}%</TableCell>
                           <TableCell className="text-[#59ff00] text-xs text-right font-semibold">{fmt(item.amount || 0)}</TableCell>
                         </TableRow>
                       ))}
@@ -250,8 +250,8 @@ export default function QuotationsTab({
                 <div className="w-64 space-y-1.5">
                   <div className="flex justify-between text-sm"><span className="text-gray-400">Subtotal</span><span className="text-gray-300">{fmt(selectedQuotation.subtotal || 0)}</span></div>
                   {selectedQuotation.discountAmount > 0 && <div className="flex justify-between text-sm"><span className="text-gray-400">Discount</span><span className="text-red-400">-{fmt(selectedQuotation.discountAmount)}</span></div>}
-                  <div className="flex justify-between text-sm"><span className="text-gray-400">CGST</span><span className="text-gray-300">{fmt(selectedQuotation.cgstAmount || 0)}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-gray-400">SGST</span><span className="text-gray-300">{fmt(selectedQuotation.sgstAmount || 0)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">CGST (9%)</span><span className="text-gray-300">{fmt(selectedQuotation.cgstAmount || 0)}</span></div>
+                  <div className="flex justify-between text-sm"><span className="text-gray-400">SGST (9%)</span><span className="text-gray-300">{fmt(selectedQuotation.sgstAmount || 0)}</span></div>
                   <div className="flex justify-between text-sm pt-2 border-t border-[#2a2a2a]"><span className="text-white font-bold">Grand Total</span><span className="text-[#59ff00] font-bold text-lg">{fmt(selectedQuotation.amount)}</span></div>
                 </div>
               </div>

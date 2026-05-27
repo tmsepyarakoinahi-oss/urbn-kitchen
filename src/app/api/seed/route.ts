@@ -368,7 +368,7 @@ async function seedDatabase() {
     data: [
       { key: 'company_name', value: 'Urban Kitchen Manufacturing & Solutions' },
       { key: 'company_email', value: 'info@urbankitchens.com' },
-      { key: 'company_phone', value: '+91-11-45678900' },
+      { key: 'company_phone', value: '+91-7080488840' },
       { key: 'company_address', value: 'Plot No. 45, Sector 12, Industrial Area, New Delhi - 110020' },
       { key: 'gst_number', value: '07AABCU9603R1ZM' },
       { key: 'currency', value: 'INR' },

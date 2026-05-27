@@ -13,6 +13,7 @@ import {
   Twitter,
   Linkedin,
   CheckCircle,
+  MessageCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,8 +74,14 @@ export default function ContactPage() {
     {
       icon: <Phone className="w-6 h-6" />,
       title: 'Phone',
-      details: ['+91-11-45678900', '+91-9876543210'],
-      action: 'tel:+911145678900',
+      details: ['+91-7080488840'],
+      action: 'tel:+917080488840',
+    },
+    {
+      icon: <MessageCircle className="w-6 h-6" />,
+      title: 'WhatsApp',
+      details: ['+91-7080488840', 'Chat with us instantly'],
+      action: 'https://wa.me/917080488840',
     },
     {
       icon: <Mail className="w-6 h-6" />,
@@ -86,12 +93,6 @@ export default function ContactPage() {
       icon: <MapPin className="w-6 h-6" />,
       title: 'Address',
       details: ['Plot No. 45, Sector 12', 'Industrial Area, New Delhi - 110020'],
-      action: '#',
-    },
-    {
-      icon: <Clock className="w-6 h-6" />,
-      title: 'Business Hours',
-      details: ['Mon - Sat: 9:00 AM - 7:00 PM', 'Sunday: Closed'],
       action: '#',
     },
   ]

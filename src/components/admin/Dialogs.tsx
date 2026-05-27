@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import {
   Plus, Edit, Trash2, Upload, X, Package, ImageIcon,
@@ -166,6 +166,37 @@ export default function Dialogs(props: DialogsProps) {
     amcDialog, setAmcDialog, amcForm, setAmcForm, handleSaveAmc,
     serviceDialog, setServiceDialog, serviceForm, setServiceForm, handleSaveServiceRequest,
   } = props
+
+  // ─── Product Search for Quotation Auto-fill ──────────────────
+  const [productSuggestions, setProductSuggestions] = useState<Record<number, any[]>>({})
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  const handleProductSearch = useCallback((query: string, idx: number) => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    if (!query || query.length < 2) {
+      setProductSuggestions(prev => ({ ...prev, [idx]: [] }))
+      return
+    }
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/products?search=${encodeURIComponent(query)}&limit=5&status=active`)
+        const json = await res.json()
+        if (json.status) {
+          const prods = json.data?.products || []
+          setProductSuggestions(prev => ({ ...prev, [idx]: prods }))
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }, 300)
+  }, [])
+
+  // Close product suggestions on outside click
+  useEffect(() => {
+    const handler = () => setProductSuggestions({})
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [])
 
   return (
     <>
@@ -471,6 +502,29 @@ export default function Dialogs(props: DialogsProps) {
               {selectedLead.requirement && (<div className="p-3 rounded-lg bg-[#0b0b0b] border border-[#2a2a2a]"><p className="text-gray-500 text-xs mb-1">Requirement</p><p className="text-gray-300 text-sm">{selectedLead.requirement}</p></div>)}
               <Separator className="bg-[#2a2a2a]" />
               <div className="space-y-2">
+                <Label className="text-gray-300 text-sm">Assign / Reassign Employee</Label>
+                <Select value={selectedLead.assignedTo || '__none__'} onValueChange={async (v) => {
+                  const newAssignedTo = v === '__none__' ? null : v
+                  try {
+                    const res = await fetch(`/api/leads/${selectedLead.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ assignedTo: newAssignedTo }) })
+                    const json = await res.json()
+                    if (json.status) {
+                      toast.success(newAssignedTo ? 'Lead assigned successfully' : 'Lead unassigned')
+                      // Re-fetch the lead to update the dialog
+                      fetch(`/api/leads/${selectedLead.id}`).then(r => r.json()).then(j => { if (j.status) { (window as any).__refreshLeadDetail?.(j.data) } }).catch(console.error)
+                    } else {
+                      toast.error('Failed to assign lead')
+                    }
+                  } catch (e) { toast.error('Failed to assign lead') }
+                }}>
+                  <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                  <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                    <SelectItem value="__none__" className="text-gray-400 focus:bg-[#59ff00]/10 focus:text-[#59ff00]">Unassigned</SelectItem>
+                    {employees.map((e: any) => (<SelectItem key={e.id} value={e.userId || e.id} className="text-white focus:bg-[#59ff00]/10 focus:text-[#59ff00]">{e.user?.name || e.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label className="text-gray-300 text-sm">Update Status</Label>
                 <Select value={selectedLead.status} onValueChange={(v) => handleUpdateLeadStatus(selectedLead.id, v)}>
                   <SelectTrigger className="bg-[#0b0b0b] border-[#2a2a2a] text-white"><SelectValue /></SelectTrigger>
@@ -545,13 +599,13 @@ export default function Dialogs(props: DialogsProps) {
               <div className="space-y-2">
                 {quotationItems.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end bg-[#0b0b0b] border border-[#2a2a2a] rounded-lg p-2">
-                    <div className="col-span-4 space-y-0.5"><Label className="text-gray-500 text-[10px]">Description</Label><Input className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.desc} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], desc: e.target.value }; setQuotationItems(n) }} placeholder="Product / Service" /></div>
+                    <div className="col-span-4 space-y-0.5 relative"><Label className="text-gray-500 text-[10px]">Description</Label><Input className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.desc} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], desc: e.target.value }; setQuotationItems(n); handleProductSearch(e.target.value, idx) }} onFocus={() => { if (item.desc.length >= 2) handleProductSearch(item.desc, idx) }} placeholder="Product / Service" />{productSuggestions[idx] && productSuggestions[idx].length > 0 && (<div className="absolute z-50 top-full left-0 right-0 bg-[#181818] border border-[#2a2a2a] rounded-md mt-0.5 max-h-32 overflow-y-auto shadow-lg" onClick={e => e.stopPropagation()}>{productSuggestions[idx].map((p: any) => (<button key={p.id} type="button" className="w-full text-left px-2 py-1.5 text-xs text-white hover:bg-[#59ff00]/10 flex justify-between items-center" onClick={() => { const n = [...quotationItems]; n[idx] = { ...n[idx], desc: p.name, rate: String(p.price), hsn: p.hsnCode || '' }; setQuotationItems(n); setProductSuggestions({}) }}><span>{p.name}</span><span className="text-[#59ff00] text-[10px]">₹{Number(p.price).toLocaleString('en-IN')}</span></button>))}</div>)}</div>
                     <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">HSN</Label><Input className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.hsn} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], hsn: e.target.value }; setQuotationItems(n) }} placeholder="8419" /></div>
                     <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">Qty</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.qty} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], qty: e.target.value }; setQuotationItems(n) }} /></div>
                     <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">Unit</Label><Input className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.unit} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], unit: e.target.value }; setQuotationItems(n) }} /></div>
                     <div className="col-span-2 space-y-0.5"><Label className="text-gray-500 text-[10px]">Rate (₹)</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.rate} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], rate: e.target.value }; setQuotationItems(n) }} placeholder="0" /></div>
                     <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">Disc%</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.discount} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], discount: e.target.value }; setQuotationItems(n) }} /></div>
-                    <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">GST%</Label><Input type="number" className="bg-[#181818] border-[#2a2a2a] text-white h-8 text-xs" value={item.gstPercent} onChange={e => { const n = [...quotationItems]; n[idx] = { ...n[idx], gstPercent: e.target.value }; setQuotationItems(n) }} /></div>
+                    <div className="col-span-1 space-y-0.5"><Label className="text-gray-500 text-[10px]">GST%</Label><div className="bg-[#181818] border border-[#2a2a2a] rounded-md h-8 flex items-center px-2 text-xs text-[#59ff00] font-semibold">18%</div></div>
                     <div className="col-span-1 flex items-center justify-center"><Button variant="ghost" size="sm" onClick={() => setQuotationItems(quotationItems.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0" disabled={quotationItems.length <= 1}><Trash2 className="w-3.5 h-3.5" /></Button></div>
                   </div>
                 ))}
@@ -565,11 +619,10 @@ export default function Dialogs(props: DialogsProps) {
                       {t.totalDiscount > 0 && <div className="flex justify-between text-xs"><span className="text-gray-400">Discount</span><span className="text-red-400">-{fmt(t.totalDiscount)}</span></div>}
                       <div className="flex justify-between text-xs"><span className="text-gray-400">After Discount</span><span className="text-gray-300">{fmt(t.afterDiscount)}</span></div>
                       <Separator className="bg-[#2a2a2a] my-1" />
-                      <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider">GST Breakdown</p>
-                      <div className="flex justify-between text-xs"><span className="text-gray-400">CGST (50% of {fmt(t.totalGst)})</span><span className="text-gray-300">{fmt(t.cgst)}</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-gray-400">SGST (50% of {fmt(t.totalGst)})</span><span className="text-gray-300">{fmt(t.sgst)}</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-gray-400">IGST (if applicable)</span><span className="text-gray-300">{fmt(0)}</span></div>
-                      <div className="flex justify-between text-xs"><span className="text-gray-400">Total GST</span><span className="text-gray-300">{fmt(t.totalGst)}</span></div>
+                      <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-wider">GST Breakdown (18%)</p>
+                      <div className="flex justify-between text-xs"><span className="text-gray-400">CGST (9%)</span><span className="text-gray-300">{fmt(t.cgst)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-gray-400">SGST (9%)</span><span className="text-gray-300">{fmt(t.sgst)}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-gray-400">Total GST (18%)</span><span className="text-gray-300">{fmt(t.totalGst)}</span></div>
                       <div className="flex justify-between text-sm pt-2 border-t border-[#2a2a2a]"><span className="text-white font-bold">Grand Total</span><span className="text-[#59ff00] font-bold text-lg">{fmt(t.grandTotal)}</span></div>
                     </div>
                   </div>

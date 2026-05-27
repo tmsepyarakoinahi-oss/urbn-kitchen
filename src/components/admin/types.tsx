@@ -120,6 +120,7 @@ export const MAIN_NAV_ITEMS: SidebarItem[] = [
   { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
   { key: 'categories', label: 'Categories', icon: Grid3X3 },
+  { key: 'orders', label: 'Order Management', icon: ShoppingCart },
   { key: 'amc', label: 'AMC', icon: Shield },
   { key: 'service', label: 'Service', icon: Wrench },
   { key: 'settings', label: 'Settings', icon: Settings },
