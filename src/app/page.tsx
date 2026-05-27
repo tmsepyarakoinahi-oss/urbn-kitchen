@@ -6,19 +6,28 @@ import { useAppStore } from '@/lib/store'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
-const HomePage = dynamic(() => import('@/components/HomePage'), { ssr: false })
-const ProductsPage = dynamic(() => import('@/components/ProductsPage'), { ssr: false })
-const ProductDetailPage = dynamic(() => import('@/components/ProductDetailPage'), { ssr: false })
-const CartPage = dynamic(() => import('@/components/CartPage'), { ssr: false })
-const AboutPage = dynamic(() => import('@/components/AboutPage'), { ssr: false })
-const ContactPage = dynamic(() => import('@/components/ContactPage'), { ssr: false })
-const AuthPages = dynamic(() => import('@/components/AuthPages'), { ssr: false })
-const AdminDashboard = dynamic(() => import('@/components/AdminDashboard'), { ssr: false })
-const CustomerPortal = dynamic(() => import('@/components/CustomerPortal'), { ssr: false })
-const EmployeePortal = dynamic(() => import('@/components/EmployeePortal'), { ssr: false })
-const AmcPage = dynamic(() => import('@/components/AmcPage'), { ssr: false })
-const CheckoutPage = dynamic(() => import('@/components/CheckoutPage'), { ssr: false })
-const OrderSuccessPage = dynamic(() => import('@/components/OrderSuccessPage'), { ssr: false })
+const DynamicLoading = () => (
+  <div className="flex items-center justify-center py-32">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-10 h-10 border-2 border-[#59ff00]/30 border-t-[#59ff00] rounded-full animate-spin" />
+      <p className="text-gray-500 text-sm">Loading...</p>
+    </div>
+  </div>
+)
+
+const HomePage = dynamic(() => import('@/components/HomePage'), { ssr: false, loading: DynamicLoading })
+const ProductsPage = dynamic(() => import('@/components/ProductsPage'), { ssr: false, loading: DynamicLoading })
+const ProductDetailPage = dynamic(() => import('@/components/ProductDetailPage'), { ssr: false, loading: DynamicLoading })
+const CartPage = dynamic(() => import('@/components/CartPage'), { ssr: false, loading: DynamicLoading })
+const AboutPage = dynamic(() => import('@/components/AboutPage'), { ssr: false, loading: DynamicLoading })
+const ContactPage = dynamic(() => import('@/components/ContactPage'), { ssr: false, loading: DynamicLoading })
+const AuthPages = dynamic(() => import('@/components/AuthPages'), { ssr: false, loading: DynamicLoading })
+const AdminDashboard = dynamic(() => import('@/components/AdminDashboard'), { ssr: false, loading: DynamicLoading })
+const CustomerPortal = dynamic(() => import('@/components/CustomerPortal'), { ssr: false, loading: DynamicLoading })
+const EmployeePortal = dynamic(() => import('@/components/EmployeePortal'), { ssr: false, loading: DynamicLoading })
+const AmcPage = dynamic(() => import('@/components/AmcPage'), { ssr: false, loading: DynamicLoading })
+const CheckoutPage = dynamic(() => import('@/components/CheckoutPage'), { ssr: false, loading: DynamicLoading })
+const OrderSuccessPage = dynamic(() => import('@/components/OrderSuccessPage'), { ssr: false, loading: DynamicLoading })
 
 const emptySubscribe = () => () => {}
 function useIsMounted() {

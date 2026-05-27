@@ -54,6 +54,7 @@ import { toast } from 'sonner'
 
 /* ─── helpers ─── */
 const formatPrice = (price: number) => {
+  if (price === 0) return 'Request Quote'
   const str = price.toString()
   let lastThree = str.substring(str.length - 3)
   const otherNumbers = str.substring(0, str.length - 3)

@@ -48,6 +48,7 @@ import { toast } from 'sonner'
 
 /* ─── helpers ─── */
 const formatPrice = (price: number) => {
+  if (price === 0) return 'Request Quote'
   const str = price.toString()
   let lastThree = str.substring(str.length - 3)
   const otherNumbers = str.substring(0, str.length - 3)
@@ -616,7 +617,13 @@ export default function ProductsPage() {
                       Add to Cart
                     </Button>
                     <Button
-                      onClick={() => { setProductDetail(quickViewProduct.id); setQuickViewProduct(null) }}
+                      onClick={() => {
+                        const productId = quickViewProduct.id
+                        setQuickViewProduct(null)
+                        setQuickViewVariant(null)
+                        // Small delay to let dialog close animation finish
+                        setTimeout(() => setProductDetail(productId), 100)
+                      }}
                       variant="outline"
                       className="border-[#59ff00] text-[#59ff00] hover:bg-[#59ff00]/10"
                     >
