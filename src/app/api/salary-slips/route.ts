@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
       status: true,
       message: 'Salary slips fetched successfully',
       data: {
+        salarySlips: slips,
         slips,
         pagination: {
           page,

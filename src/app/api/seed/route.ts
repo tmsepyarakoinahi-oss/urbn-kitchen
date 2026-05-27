@@ -23,6 +23,34 @@ async function seedDatabase() {
   await db.inquiry.deleteMany()
   await db.activityLog.deleteMany()
   await db.employee.deleteMany()
+  // HRM models
+  await db.performanceReview.deleteMany()
+  await db.appraisal.deleteMany()
+  await db.workReport.deleteMany()
+  await db.asset.deleteMany()
+  await db.trainingProgram.deleteMany()
+  await db.shift.deleteMany()
+  await db.team.deleteMany()
+  await db.jobOpening.deleteMany()
+  await db.interview.deleteMany()
+  await db.notice.deleteMany()
+  await db.holiday.deleteMany()
+  await db.designation.deleteMany()
+  await db.department.deleteMany()
+  // CRM models
+  await db.conversationMessage.deleteMany()
+  await db.conversation.deleteMany()
+  await db.emailSequenceStep.deleteMany()
+  await db.emailSequenceEnrollment.deleteMany()
+  await db.emailSequence.deleteMany()
+  await db.emailTemplate.deleteMany()
+  await db.pipelineDeal.deleteMany()
+  await db.pipeline.deleteMany()
+  await db.company.deleteMany()
+  await db.leadSource.deleteMany()
+  await db.integration.deleteMany()
+  await db.crmForm.deleteMany()
+  await db.crmImport.deleteMany()
   await db.user.deleteMany()
   await db.setting.deleteMany()
   await db.role.deleteMany()
@@ -347,6 +375,114 @@ async function seedDatabase() {
     ],
   })
 
+  // ── HRM: Departments ──
+  const departments = await Promise.all([
+    db.department.create({ data: { name: 'Production', head: managers[1].name, budget: 2500000, status: 'active' } }),
+    db.department.create({ data: { name: 'Sales', head: managers[0].name, budget: 1800000, status: 'active' } }),
+    db.department.create({ data: { name: 'Quality Control', head: employees[1].name, budget: 600000, status: 'active' } }),
+    db.department.create({ data: { name: 'Service', head: employees[2].name, budget: 800000, status: 'active' } }),
+    db.department.create({ data: { name: 'HR & Admin', head: managers[0].name, budget: 500000, status: 'active' } }),
+  ])
+
+  // ── HRM: Designations ──
+  const designations = await Promise.all([
+    db.designation.create({ data: { name: 'Senior Welder', level: 3, minSalary: 22000, maxSalary: 35000, status: 'active' } }),
+    db.designation.create({ data: { name: 'QC Inspector', level: 3, minSalary: 25000, maxSalary: 40000, status: 'active' } }),
+    db.designation.create({ data: { name: 'Field Technician', level: 2, minSalary: 18000, maxSalary: 30000, status: 'active' } }),
+    db.designation.create({ data: { name: 'Sales Manager', level: 5, minSalary: 45000, maxSalary: 70000, status: 'active' } }),
+    db.designation.create({ data: { name: 'Operations Manager', level: 5, minSalary: 42000, maxSalary: 65000, status: 'active' } }),
+    db.designation.create({ data: { name: 'Junior Welder', level: 1, minSalary: 15000, maxSalary: 22000, status: 'active' } }),
+  ])
+
+  // ── HRM: Holidays ──
+  const currentYear = new Date().getFullYear()
+  await Promise.all([
+    db.holiday.create({ data: { name: 'Republic Day', date: new Date(currentYear, 0, 26), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Holi', date: new Date(currentYear, 2, 14), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Good Friday', date: new Date(currentYear, 3, 18), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Independence Day', date: new Date(currentYear, 7, 15), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Gandhi Jayanti', date: new Date(currentYear, 9, 2), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Dussehra', date: new Date(currentYear, 9, 24), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Diwali', date: new Date(currentYear, 10, 12), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Christmas', date: new Date(currentYear, 11, 25), type: 'public' } }),
+    db.holiday.create({ data: { name: 'Company Foundation Day', date: new Date(currentYear, 5, 15), type: 'company' } }),
+  ])
+
+  // ── HRM: Notices ──
+  await Promise.all([
+    db.notice.create({ data: { title: 'Annual Health Checkup', content: 'All employees are required to undergo annual health checkup between 10th-20th of this month. Schedule available at HR desk.', priority: 'high', postedBy: managers[0].name, status: 'active' } }),
+    db.notice.create({ data: { title: 'Safety Training Mandatory', content: 'All production floor staff must attend the safety training session scheduled for next Monday.', priority: 'urgent', postedBy: managers[1].name, status: 'active' } }),
+    db.notice.create({ data: { title: 'Holiday Schedule Update', content: 'Please check the updated holiday list for the current year on the notice board.', priority: 'normal', postedBy: managers[0].name, status: 'active' } }),
+  ])
+
+  // ── HRM: Job Openings ──
+  await Promise.all([
+    db.jobOpening.create({ data: { title: 'Senior Welder', department: 'Production', type: 'full-time', experience: '3-5 years', salaryRange: '₹22,000 - ₹35,000', description: 'Experienced welder with SS304/SS316 TIG and MIG welding skills.', requirements: 'ITI/Diploma in Welding, 3+ years experience', location: 'New Delhi', status: 'open', applications: 8 } }),
+    db.jobOpening.create({ data: { title: 'Service Technician', department: 'Service', type: 'full-time', experience: '1-3 years', salaryRange: '₹18,000 - ₹28,000', description: 'Field technician for installation and maintenance of commercial kitchen equipment.', requirements: 'Diploma in Electrical/Mechanical, valid driving license', location: 'NCR Region', status: 'open', applications: 12 } }),
+    db.jobOpening.create({ data: { title: 'Sales Executive', department: 'Sales', type: 'full-time', experience: '2-4 years', salaryRange: '₹25,000 - ₹40,000', description: 'B2B sales executive for commercial kitchen equipment.', requirements: 'Graduate with B2B sales experience in hospitality/F&B sector', location: 'Pan India', status: 'on_hold', applications: 5 } }),
+  ])
+
+  // ── HRM: Shifts ──
+  await Promise.all([
+    db.shift.create({ data: { name: 'General Shift', startTime: '09:00', endTime: '18:00', breakDuration: 30, employees: 8, supervisor: managers[1].name, status: 'active' } }),
+    db.shift.create({ data: { name: 'Morning Shift', startTime: '06:00', endTime: '14:00', breakDuration: 30, employees: 4, status: 'active' } }),
+    db.shift.create({ data: { name: 'Evening Shift', startTime: '14:00', endTime: '22:00', breakDuration: 30, employees: 3, status: 'active' } }),
+  ])
+
+  // ── HRM: Teams ──
+  await Promise.all([
+    db.team.create({ data: { name: 'Fabrication Team', leadId: employees[0].id, members: 5, department: 'Production', status: 'active' } }),
+    db.team.create({ data: { name: 'Quality Team', leadId: employees[1].id, members: 3, department: 'Quality Control', status: 'active' } }),
+    db.team.create({ data: { name: 'Service Team', leadId: employees[2].id, members: 4, department: 'Service', status: 'active' } }),
+  ])
+
+  // ── HRM: Assets ──
+  await Promise.all([
+    db.asset.create({ data: { name: 'MIG Welding Machine', type: 'equipment', serialNo: 'MW-2024-001', value: 185000, assignedTo: empRecords[0].id, purchaseDate: new Date(2024, 0, 15), status: 'assigned' } }),
+    db.asset.create({ data: { name: 'Laptop - Dell Latitude', type: 'electronics', serialNo: 'DL-2024-015', value: 65000, assignedTo: empRecords[1].id, purchaseDate: new Date(2024, 2, 10), status: 'assigned' } }),
+    db.asset.create({ data: { name: 'Service Van - Tata Ace', type: 'vehicle', serialNo: 'TV-2024-003', value: 550000, assignedTo: empRecords[2].id, purchaseDate: new Date(2023, 5, 20), status: 'assigned' } }),
+    db.asset.create({ data: { name: 'TIG Welding Machine', type: 'equipment', serialNo: 'TW-2024-002', value: 210000, purchaseDate: new Date(2024, 1, 5), status: 'available' } }),
+  ])
+
+  // ── HRM: Training Programs ──
+  await Promise.all([
+    db.trainingProgram.create({ data: { name: 'Advanced TIG Welding', type: 'internal', duration: '5 days', trainer: 'External Expert', enrolled: 6, maxSeats: 10, startDate: new Date(currentYear, 5, 10), endDate: new Date(currentYear, 5, 14), status: 'upcoming' } }),
+    db.trainingProgram.create({ data: { name: 'Safety & Compliance', type: 'internal', duration: '2 days', trainer: 'HR Team', enrolled: 15, maxSeats: 20, startDate: new Date(currentYear, 4, 1), endDate: new Date(currentYear, 4, 2), status: 'ongoing' } }),
+    db.trainingProgram.create({ data: { name: 'Customer Service Excellence', type: 'online', duration: '4 hours', trainer: 'Online Course', enrolled: 8, maxSeats: 25, startDate: new Date(currentYear, 3, 15), status: 'completed' } }),
+  ])
+
+  // ── CRM: Companies ──
+  await Promise.all([
+    db.company.create({ data: { name: 'Royal Orchid Hotels Ltd', industry: 'Hospitality', website: 'royalorchidhotels.com', phone: '+91-80-42424242', email: 'info@royalorchid.com', address: 'Bangalore, India', revenue: 5000000, status: 'active', leads: { connect: { id: leads[0].id } } } }),
+    db.company.create({ data: { name: 'ITC Hotels', industry: 'Hospitality', website: 'itchotels.com', phone: '+91-44-24342434', email: 'info@itchotels.com', address: 'Chennai, India', revenue: 15000000, status: 'active', leads: { connect: { id: leads[1].id } } } }),
+    db.company.create({ data: { name: 'Haldiram Manufacturing', industry: 'Food Processing', website: 'haldirams.com', phone: '+91-11-23232323', email: 'info@haldirams.com', address: 'Delhi, India', revenue: 8000000, status: 'active', leads: { connect: { id: leads[4].id } } } }),
+  ])
+
+  // ── CRM: Pipelines ──
+  const pipeline = await db.pipeline.create({ data: { name: 'Sales Pipeline', description: 'Main sales pipeline for all deals', isDefault: true, stages: JSON.stringify([{ id: '1', name: 'Qualification', order: 1, color: '#6366f1' }, { id: '2', name: 'Proposal', order: 2, color: '#f59e0b' }, { id: '3', name: 'Negotiation', order: 3, color: '#ef4444' }, { id: '4', name: 'Closed Won', order: 4, color: '#22c55e' }, { id: '5', name: 'Closed Lost', order: 5, color: '#94a3b8' }]) } })
+
+  // ── CRM: Pipeline Deals ──
+  await Promise.all([
+    db.pipelineDeal.create({ data: { pipelineId: pipeline.id, leadId: leads[0].id, title: 'Royal Orchid Kitchen Setup', value: 1850000, stage: 'Negotiation', probability: 65, assigneeId: managers[0].id, closeDate: new Date(currentYear, 5, 30), status: 'open' } }),
+    db.pipelineDeal.create({ data: { pipelineId: pipeline.id, leadId: leads[1].id, title: 'ITC Grand Chola Burners & Tandoors', value: 720000, stage: 'Proposal', probability: 45, assigneeId: managers[1].id, closeDate: new Date(currentYear, 4, 15), status: 'open' } }),
+    db.pipelineDeal.create({ data: { pipelineId: pipeline.id, leadId: leads[4].id, title: 'Haldiram Mixers & Grinders', value: 560000, stage: 'Closed Won', probability: 100, assigneeId: managers[1].id, status: 'won' } }),
+  ])
+
+  // ── CRM: Email Templates ──
+  await Promise.all([
+    db.emailTemplate.create({ data: { name: 'Welcome Email', subject: 'Welcome to Urban Kitchen!', body: '<p>Dear {{name}},</p><p>Thank you for your interest in Urban Kitchen products.</p>', category: 'general', variables: JSON.stringify(['name', 'email']), usageCount: 15, status: 'active' } }),
+    db.emailTemplate.create({ data: { name: 'Quotation Follow-up', subject: 'Following up on your quotation', body: '<p>Dear {{name}},</p><p>We wanted to follow up on quotation {{quotation_number}}.</p>', category: 'followup', variables: JSON.stringify(['name', 'quotation_number']), usageCount: 8, status: 'active' } }),
+    db.emailTemplate.create({ data: { name: 'Lead Nurture', subject: 'Discover our latest products', body: '<p>Dear {{name}},</p><p>Check out our latest commercial kitchen solutions.</p>', category: 'nurture', variables: JSON.stringify(['name', 'company']), usageCount: 22, status: 'active' } }),
+  ])
+
+  // ── CRM: Lead Sources ──
+  await Promise.all([
+    db.leadSource.create({ data: { name: 'Google Ads', type: 'paid', cost: 50000, status: 'active' } }),
+    db.leadSource.create({ data: { name: 'Website Contact Form', type: 'organic', cost: 0, status: 'active' } }),
+    db.leadSource.create({ data: { name: 'Industry Referral', type: 'referral', cost: 5000, status: 'active' } }),
+    db.leadSource.create({ data: { name: 'LinkedIn', type: 'social', cost: 15000, status: 'active' } }),
+  ])
+
   return {
     roles: roles.length,
     users: 1 + managers.length + employees.length + customers.length,
@@ -370,7 +506,9 @@ export async function GET(request: Request) {
     const secret = searchParams.get('secret')
     const expectedSecret = process.env.SEED_SECRET
 
-    if (!expectedSecret || secret !== expectedSecret) {
+    // Allow seeding without secret in development, require secret in production
+    const isDev = process.env.NODE_ENV === 'development'
+    if (!isDev && (!expectedSecret || secret !== expectedSecret)) {
       return NextResponse.json(
         { status: false, message: 'Invalid or missing secret token. Add ?secret=YOUR_SEED_SECRET to the URL' },
         { status: 403 }
@@ -399,8 +537,9 @@ export async function POST(request: Request) {
     const { searchParams } = new URL(request.url)
     const secret = searchParams.get('secret')
     const expectedSecret = process.env.SEED_SECRET
+    const isDev = process.env.NODE_ENV === 'development'
 
-    if (!expectedSecret || secret !== expectedSecret) {
+    if (!isDev && (!expectedSecret || secret !== expectedSecret)) {
       return NextResponse.json(
         { status: false, message: 'Invalid or missing secret token. Add ?secret=YOUR_SEED_SECRET to the URL' },
         { status: 403 }
