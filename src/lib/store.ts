@@ -47,18 +47,7 @@ export type AdminTab =
   | 'crm-kanban'
   | 'crm-integrations'
   | 'crm-lead-sources'
-  // CRM Reports
-  | 'crm-report-volume'
-  | 'crm-report-source'
-  | 'crm-report-funnel'
-  | 'crm-report-agent'
-  | 'crm-report-automation'
-  | 'crm-report-attribution'
-  | 'crm-report-forms'
-  | 'crm-report-response'
-  | 'crm-report-bottlenecks'
-  | 'crm-report-revenue'
-  | 'crm-report-scheduled'
+
   // CRM Sales
   | 'crm-sales'
   | 'crm-quotes'
@@ -102,6 +91,8 @@ export type EmployeeTab =
   | 'tasks'
   | 'salary'
   | 'leaves'
+  | 'leads'
+  | 'pipeline'
 
 interface AppState {
   // Navigation

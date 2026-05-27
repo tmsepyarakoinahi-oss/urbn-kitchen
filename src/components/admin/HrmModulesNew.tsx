@@ -324,6 +324,196 @@ function SimpleCrudModule({ title, desc, icon: Icon, apiPath, defaultForm, stats
 }
 
 // ─── Main Export ─────────────────────────────────────────
+// ─── Permissions & Roles Module ───────────────────────────
+const ALL_PERMISSIONS = [
+  { key: 'products', label: 'Products' },
+  { key: 'orders', label: 'Orders' },
+  { key: 'leads', label: 'Leads' },
+  { key: 'quotations', label: 'Quotations' },
+  { key: 'employees', label: 'Employees' },
+  { key: 'reports', label: 'Reports' },
+  { key: 'tasks', label: 'Tasks' },
+  { key: 'attendance', label: 'Attendance' },
+  { key: 'leaves', label: 'Leaves' },
+  { key: 'settings', label: 'Settings' },
+  { key: 'crm', label: 'CRM' },
+  { key: 'hrm', label: 'HRM' },
+]
+
+function PermissionsModule() {
+  const [users, setUsers] = useState<any[]>([])
+  const [roles, setRoles] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState<string | null>(null)
+  const [editDialog, setEditDialog] = useState(false)
+  const [editUser, setEditUser] = useState<any>(null)
+  const [editRole, setEditRole] = useState('')
+  const [editPermissions, setEditPermissions] = useState<string[]>([])
+
+  const fetchData = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/users?limit=50')
+      const json = await res.json()
+      if (json.status) {
+        setUsers(Array.isArray(json.data?.users) ? json.data.users : Array.isArray(json.data) ? json.data : [])
+        setRoles(Array.isArray(json.data?.roles) ? json.data.roles : [])
+      }
+    } catch (e) { console.error(e) } finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  const openEdit = (user: any) => {
+    setEditUser(user)
+    setEditRole(user.roleId || user.role?.id || '')
+    const perms = user.role?.permissions
+    try {
+      const parsed = typeof perms === 'string' ? JSON.parse(perms) : (Array.isArray(perms) ? perms : [])
+      setEditPermissions(Array.isArray(parsed) ? parsed : [])
+    } catch { setEditPermissions([]) }
+    setEditDialog(true)
+  }
+
+  const togglePermission = (key: string) => {
+    setEditPermissions(prev => prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key])
+  }
+
+  const handleSave = async () => {
+    if (!editUser) return
+    setSaving(editUser.id)
+    try {
+      // Update user role
+      const res = await fetch(`/api/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleId: editRole }),
+      })
+      const json = await res.json()
+      if (!json.status) { toast.error(json.message || 'Failed to update role'); return }
+
+      // Update role permissions
+      const targetRole = editRole || editUser.roleId
+      if (targetRole) {
+        await fetch('/api/roles', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: targetRole, permissions: editPermissions }),
+        })
+      }
+
+      setEditDialog(false)
+      fetchData()
+      toast.success('Permissions updated')
+    } catch (e) { console.error(e); toast.error('Failed') } finally { setSaving(null) }
+  }
+
+  const roleBadgeCls = (rn: string) => {
+    switch (rn) {
+      case 'admin': return 'bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30'
+      case 'manager': return 'bg-purple-500/20 text-purple-400 border-purple-500/30'
+      case 'employee': return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      case 'customer': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+      <ModuleHeader title="Permissions & Roles" description="Manage user roles and granular permissions" icon={Lock} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard label="Total Users" value={users.length} icon={Users} color="text-blue-400" />
+        <StatCard label="Roles" value={roles.length} icon={Lock} color="text-purple-400" delay={0.1} />
+        <StatCard label="Admins" value={users.filter((u: any) => u.role?.roleName === 'admin').length} icon={Shield} color="text-[#59ff00]" delay={0.2} />
+        <StatCard label="Managers" value={users.filter((u: any) => u.role?.roleName === 'manager').length} icon={Award} color="text-yellow-400" delay={0.3} />
+      </div>
+      <Card className="bg-[#181818] border-[#2a2a2a]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-[#2a2a2a] hover:bg-transparent">
+                  <TableHead className="text-gray-400">Name</TableHead>
+                  <TableHead className="text-gray-400">Email</TableHead>
+                  <TableHead className="text-gray-400">Role</TableHead>
+                  <TableHead className="text-gray-400">Permissions</TableHead>
+                  <TableHead className="text-gray-400">Status</TableHead>
+                  <TableHead className="text-gray-400">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((u: any) => {
+                  const perms = u.role?.permissions
+                  let permList: string[] = []
+                  try { const p = typeof perms === 'string' ? JSON.parse(perms) : perms; permList = Array.isArray(p) ? p : [] } catch { permList = [] }
+                  return (
+                    <TableRow key={u.id} className="border-[#2a2a2a] hover:bg-white/5">
+                      <TableCell className="text-white text-sm font-medium">{u.name}</TableCell>
+                      <TableCell className="text-gray-300 text-sm">{u.email}</TableCell>
+                      <TableCell><Badge className={`text-[10px] ${roleBadgeCls(u.role?.roleName || '')}`}>{u.role?.roleName || 'unknown'}</Badge></TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <div className="flex flex-wrap gap-1">
+                          {permList.length > 0 ? permList.slice(0, 4).map((p: string) => (
+                            <span key={p} className="text-[10px] px-1.5 py-0.5 rounded bg-[#59ff00]/10 text-[#59ff00] border border-[#59ff00]/20 capitalize">{p}</span>
+                          )) : <span className="text-gray-600 text-xs">None</span>}
+                          {permList.length > 4 && <span className="text-gray-500 text-[10px]">+{permList.length - 4}</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell><Badge className={`text-[10px] ${statusBadgeCls(u.status)}`}>{u.status}</Badge></TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="ghost" onClick={() => openEdit(u)} className="text-blue-400 h-7 w-7 p-0"><Edit className="w-3.5 h-3.5" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+                {users.length === 0 && !loading && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No users found</TableCell></TableRow>}
+                {loading && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8"><div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto" /></TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+      <Dialog open={editDialog} onOpenChange={setEditDialog}>
+        <DialogContent className="bg-[#181818] border-[#2a2a2a] text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="text-white">Edit Permissions — {editUser?.name}</DialogTitle></DialogHeader>
+          {editUser && (
+            <div className="space-y-4">
+              <FF label="Role">
+                <Select value={editRole} onValueChange={setEditRole}>
+                  <SelectTrigger className={inputCls}><SelectValue placeholder="Select role" /></SelectTrigger>
+                  <SelectContent className="bg-[#181818] border-[#2a2a2a]">
+                    {roles.map((r: any) => <SelectItem key={r.id} value={r.id} className="text-white capitalize">{r.roleName}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FF>
+              <div className="space-y-2">
+                <label className="text-gray-400 text-xs font-medium">Permissions</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {ALL_PERMISSIONS.map(({ key, label }) => (
+                    <button key={key} onClick={() => togglePermission(key)} type="button"
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${editPermissions.includes(key) ? 'bg-[#59ff00]/10 border-[#59ff00]/30 text-[#59ff00]' : 'bg-[#0b0b0b] border-[#2a2a2a] text-gray-400 hover:border-[#59ff00]/20'}`}>
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${editPermissions.includes(key) ? 'bg-[#59ff00] border-[#59ff00]' : 'border-gray-500'}`}>
+                        {editPermissions.includes(key) && <Check className="w-3 h-3 text-black" />}
+                      </div>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditDialog(false)} className="text-gray-400">Cancel</Button>
+            <Button onClick={handleSave} disabled={!!saving} className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold">
+              {saving ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : 'Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </motion.div>
+  )
+}
+
 export default function HrmModules({ adminTab, employees }: HrmModulesProps) {
   switch (adminTab) {
     case 'hrm-dashboard': return <HrmDashboard employees={employees} />
@@ -407,23 +597,7 @@ export default function HrmModules({ adminTab, employees }: HrmModulesProps) {
     ]} tableConfig={{ headers: ['Name', 'Lead', 'Members', 'Department', 'Status'], renderRow: (item: any) => [<span className="text-white text-sm">{item.name}</span>, <span className="text-gray-300 text-sm">{item.leadId || '-'}</span>, <span className="text-gray-300 text-sm">{item.members}</span>, <span className="text-gray-300 text-sm">{item.department || '-'}</span>, <Badge className={`text-[10px] ${statusBadgeCls(item.status)}`}>{item.status}</Badge>] }} formConfig={[
       { key: 'name', label: 'Name' }, { key: 'members', label: 'Members', type: 'number' }, { key: 'department', label: 'Department' }, { key: 'status', label: 'Status', type: 'select', default: 'active', options: [{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] },
     ]} />
-    case 'hrm-permissions': return (
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-        <ModuleHeader title="Permissions & Roles" description="Manage user roles and granular permissions" icon={Lock} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Roles" value={6} icon={Lock} color="text-blue-400" />
-          <StatCard label="Permissions" value={42} icon={Shield} color="text-purple-400" delay={0.1} />
-          <StatCard label="Users" value={employees.length} icon={Users} color="text-yellow-400" delay={0.2} />
-          <StatCard label="Custom Roles" value={3} icon={Settings} color="text-emerald-400" delay={0.3} />
-        </div>
-        <Card className="bg-[#181818] border-[#2a2a2a]"><CardContent className="p-0"><Table><TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Role</TableHead><TableHead className="text-gray-400">Users</TableHead><TableHead className="text-gray-400">Permissions</TableHead><TableHead className="text-gray-400">Level</TableHead></TableRow></TableHeader>
-          <TableBody>{['Admin', 'Manager', 'Employee', 'HR', 'Sales', 'Support'].map((role, idx) => {
-            const levels = ['Full Access', 'High', 'Medium', 'High', 'Medium', 'Low']
-            const perms = [42, 30, 12, 28, 18, 8]
-            return <TableRow key={role} className="border-[#2a2a2a] hover:bg-white/5"><TableCell className="text-white text-sm font-medium">{role}</TableCell><TableCell className="text-gray-300 text-sm">{idx < 2 ? Math.max(1, Math.floor(employees.length / 3)) : Math.floor(employees.length / 4)}</TableCell><TableCell className="text-gray-300 text-sm">{perms[idx]}</TableCell><TableCell><Badge className={`text-[10px] ${idx === 0 ? 'bg-[#59ff00]/10 text-[#59ff00]' : idx < 3 ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400'}`}>{levels[idx]}</Badge></TableCell></TableRow>
-          })}</TableBody></Table></CardContent></Card>
-      </motion.div>
-    )
+    case 'hrm-permissions': return <PermissionsModule />
     case 'hrm-attendance': return (
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
         <ModuleHeader title="Attendance" description="Track employee attendance and check-in/out times" icon={Clock} />

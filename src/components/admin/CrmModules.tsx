@@ -566,34 +566,6 @@ function EmailSequencesModule() {
   )
 }
 
-// ─── CRM Report Modules (computed from leads/quotations) ──
-function CrmReportModule({ title, description, icon: Icon, leads }: { title: string; description: string; icon: React.ElementType; leads: any[] }) {
-  const byStatus = leads.reduce((acc: any, l: any) => { acc[l.status] = (acc[l.status] || 0) + 1; return acc }, {})
-  const bySource = leads.reduce((acc: any, l: any) => { acc[l.source || 'unknown'] = (acc[l.source || 'unknown'] || 0) + 1; return acc }, {})
-  const wonRate = leads.length > 0 ? Math.round((byStatus.won || 0) / leads.length * 100) : 0
-  return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <ModuleHeader title={title} description={description} icon={Icon} />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Leads" value={leads.length} icon={Users} color="text-blue-400" />
-        <StatCard label="Won" value={byStatus.won || 0} icon={Check} color="text-emerald-400" delay={0.1} />
-        <StatCard label="Lost" value={byStatus.lost || 0} icon={AlertTriangle} color="text-red-400" delay={0.2} />
-        <StatCard label="Win Rate" value={`${wonRate}%`} icon={TrendingUp} color="text-[#59ff00]" delay={0.3} />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="bg-[#181818] border-[#2a2a2a]"><CardContent className="p-4">
-          <h3 className="text-white font-semibold text-sm mb-3">Leads by Status</h3>
-          <div className="space-y-2">{Object.entries(byStatus).map(([status, count]: any) => <div key={status} className="flex items-center justify-between py-1.5 border-b border-[#2a2a2a] last:border-0"><span className="text-gray-300 text-sm capitalize">{status.replace('_', ' ')}</span><div className="flex items-center gap-2"><div className="w-24 bg-[#0b0b0b] rounded-full h-2"><div className="bg-[#59ff00] h-2 rounded-full" style={{ width: `${leads.length > 0 ? (count / leads.length * 100) : 0}%` }} /></div><span className="text-white text-sm font-medium w-8 text-right">{count}</span></div></div>)}</div>
-        </CardContent></Card>
-        <Card className="bg-[#181818] border-[#2a2a2a]"><CardContent className="p-4">
-          <h3 className="text-white font-semibold text-sm mb-3">Leads by Source</h3>
-          <div className="space-y-2">{Object.entries(bySource).map(([source, count]: any) => <div key={source} className="flex items-center justify-between py-1.5 border-b border-[#2a2a2a] last:border-0"><span className="text-gray-300 text-sm capitalize">{source}</span><div className="flex items-center gap-2"><div className="w-24 bg-[#0b0b0b] rounded-full h-2"><div className="bg-blue-500 h-2 rounded-full" style={{ width: `${leads.length > 0 ? (count / leads.length * 100) : 0}%` }} /></div><span className="text-white text-sm font-medium w-8 text-right">{count}</span></div></div>)}</div>
-        </CardContent></Card>
-      </div>
-    </motion.div>
-  )
-}
-
 // ─── CRM Sales Modules ───────────────────────────────────
 function CrmSalesModule({ title, description, icon: Icon, type }: { title: string; description: string; icon: React.ElementType; type: string }) {
   const [items, setItems] = useState<any[]>([])
@@ -664,18 +636,6 @@ export default function CrmModules({ adminTab, leads, employees }: CrmModulesPro
     case 'crm-integrations': return <IntegrationsModule />
     case 'crm-email-templates': return <EmailTemplatesModule />
     case 'crm-email-sequences': return <EmailSequencesModule />
-    // CRM Reports
-    case 'crm-report-volume': return <CrmReportModule title="Lead Volume" description="Track lead volume trends over time" icon={BarChart3} leads={leads} />
-    case 'crm-report-source': return <CrmReportModule title="Source Performance" description="Analyze which lead sources perform best" icon={PieChartIcon} leads={leads} />
-    case 'crm-report-funnel': return <CrmReportModule title="Pipeline Funnel" description="Visualize your conversion funnel from lead to close" icon={Target} leads={leads} />
-    case 'crm-report-agent': return <CrmReportModule title="Agent Performance" description="Track and compare sales agent performance metrics" icon={Star} leads={leads} />
-    case 'crm-report-automation': return <CrmReportModule title="Automation Stats" description="Monitor automated workflow performance" icon={Zap} leads={leads} />
-    case 'crm-report-attribution': return <CrmReportModule title="Source Attribution" description="Understand which channels contribute to conversions" icon={Link2} leads={leads} />
-    case 'crm-report-forms': return <CrmReportModule title="Form Analytics" description="Analyze form submission and conversion data" icon={FormInput} leads={leads} />
-    case 'crm-report-response': return <CrmReportModule title="Response Time" description="Track response times and SLA compliance" icon={Timer} leads={leads} />
-    case 'crm-report-bottlenecks': return <CrmReportModule title="Pipeline Bottlenecks" description="Identify and resolve pipeline bottlenecks" icon={AlertTriangle} leads={leads} />
-    case 'crm-report-revenue': return <CrmReportModule title="Revenue by Rep" description="Revenue performance breakdown by sales representative" icon={DollarSign} leads={leads} />
-    case 'crm-report-scheduled': return <CrmReportModule title="Scheduled Reports" description="Configure automated report generation and delivery" icon={CalendarClock} leads={leads} />
     // CRM Sales
     case 'crm-sales': return <CrmSalesModule title="Sales" description="Track sales performance, targets, and revenue metrics" icon={DollarSign} type="sales" />
     case 'crm-quotes': return <CrmSalesModule title="Quotes" description="Manage sales quotes and proposals" icon={Receipt} type="quotes" />

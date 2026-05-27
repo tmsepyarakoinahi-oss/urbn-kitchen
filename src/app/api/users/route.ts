@@ -2,6 +2,44 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword } from '@/lib/auth'
 
+// GET /api/users - List users with roles
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const role = searchParams.get('role')
+    const limit = parseInt(searchParams.get('limit') || '50')
+
+    const where: Record<string, unknown> = {}
+    if (role) {
+      where.role = { roleName: role }
+    }
+
+    const [users, roles] = await Promise.all([
+      db.user.findMany({
+        where,
+        include: { role: true },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+      db.role.findMany({ orderBy: { roleName: 'asc' } }),
+    ])
+
+    const usersWithoutPasswords = users.map(({ password: _, ...user }) => user)
+
+    return NextResponse.json({
+      status: true,
+      message: 'Users fetched successfully',
+      data: { users: usersWithoutPasswords, roles },
+    })
+  } catch (error) {
+    console.error('Users fetch error:', error)
+    return NextResponse.json(
+      { status: false, message: 'Failed to fetch users' },
+      { status: 500 }
+    )
+  }
+}
+
 // PUT /api/users - Update user profile
 export async function PUT(request: NextRequest) {
   try {

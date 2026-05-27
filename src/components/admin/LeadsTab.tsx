@@ -19,6 +19,11 @@ interface LeadsTabProps {
 }
 
 export default function LeadsTab({ leads, setLeadForm, setLeadDialog, openLeadDetail, handleUpdateLeadStatus }: LeadsTabProps) {
+  const [employees, setEmployees] = React.useState<any[]>([])
+
+  React.useEffect(() => {
+    fetch('/api/employees?limit=50').then(r => r.json()).then(j => { if (j.status) { const raw = j.data?.employees || []; setEmployees(Array.isArray(raw) ? raw : []) } }).catch(() => {})
+  }, [])
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="flex items-center justify-between">
@@ -29,7 +34,7 @@ export default function LeadsTab({ leads, setLeadForm, setLeadDialog, openLeadDe
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Name</TableHead><TableHead className="text-gray-400">Company</TableHead><TableHead className="text-gray-400">City</TableHead><TableHead className="text-gray-400">Source</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow className="border-[#2a2a2a] hover:bg-transparent"><TableHead className="text-gray-400">Name</TableHead><TableHead className="text-gray-400">Company</TableHead><TableHead className="text-gray-400">City</TableHead><TableHead className="text-gray-400">Source</TableHead><TableHead className="text-gray-400">Assigned To</TableHead><TableHead className="text-gray-400">Status</TableHead><TableHead className="text-gray-400">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {leads.map((l: any) => (
                   <TableRow key={l.id} className="border-[#2a2a2a] hover:bg-white/5">
@@ -37,6 +42,7 @@ export default function LeadsTab({ leads, setLeadForm, setLeadDialog, openLeadDe
                     <TableCell className="text-gray-300 text-sm">{l.company || '-'}</TableCell>
                     <TableCell className="text-gray-300 text-sm">{l.city || '-'}</TableCell>
                     <TableCell className="text-gray-300 text-sm capitalize">{l.source || '-'}</TableCell>
+                    <TableCell className="text-gray-300 text-sm">{l.assignee?.name || (l.assignedTo ? employees.find((e: any) => e.userId === l.assignedTo)?.user?.name || 'Unassigned' : '-')}</TableCell>
                     <TableCell><Badge className={`text-[10px] ${leadBadge(l.status)}`}>{l.status.replace('_', ' ')}</Badge></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -51,7 +57,7 @@ export default function LeadsTab({ leads, setLeadForm, setLeadDialog, openLeadDe
                     </TableCell>
                   </TableRow>
                 ))}
-                {leads.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-gray-500 py-8">No leads found</TableCell></TableRow>}
+                {leads.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-gray-500 py-8">No leads found</TableCell></TableRow>}
               </TableBody>
             </Table>
           </div>

@@ -10,7 +10,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { password, name, email, phone } = body
+    const { password, name, email, phone, roleId, status } = body
 
     const existingUser = await db.user.findUnique({ where: { id } })
     if (!existingUser) {
@@ -40,6 +40,8 @@ export async function PUT(
       updateData.email = email
     }
     if (phone !== undefined) updateData.phone = phone || null
+    if (roleId) updateData.roleId = roleId
+    if (status) updateData.status = status
 
     const user = await db.user.update({
       where: { id },

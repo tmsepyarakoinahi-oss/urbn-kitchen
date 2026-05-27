@@ -155,22 +155,6 @@ export const CRM_GROUP: SidebarGroup = {
       ],
     },
     {
-      label: 'REPORTS',
-      items: [
-        { key: 'crm-report-volume', label: 'Lead Volume', icon: BarChart3 },
-        { key: 'crm-report-source', label: 'Source Performance', icon: PieChartIcon },
-        { key: 'crm-report-funnel', label: 'Pipeline Funnel', icon: Target },
-        { key: 'crm-report-agent', label: 'Agent Performance', icon: Star },
-        { key: 'crm-report-automation', label: 'Automation Stats', icon: Zap },
-        { key: 'crm-report-attribution', label: 'Source Attribution', icon: Link2 },
-        { key: 'crm-report-forms', label: 'Form Analytics', icon: FormInput },
-        { key: 'crm-report-response', label: 'Response Time', icon: Timer },
-        { key: 'crm-report-bottlenecks', label: 'Pipeline Bottlenecks', icon: TrendingDown },
-        { key: 'crm-report-revenue', label: 'Revenue by Rep', icon: DollarSign },
-        { key: 'crm-report-scheduled', label: 'Scheduled Reports', icon: CalendarClock },
-      ],
-    },
-    {
       label: 'SALES',
       items: [
         { key: 'crm-sales', label: 'Sales', icon: DollarSign },

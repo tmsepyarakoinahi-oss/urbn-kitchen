@@ -5,7 +5,8 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Clock, CheckSquare, DollarSign, CalendarDays,
   LogOut, Play, Square, ChevronDown, ChevronUp, AlertCircle,
-  CheckCircle2, Circle, ArrowUpRight, FileText, Plus, Loader2
+  CheckCircle2, Circle, ArrowUpRight, FileText, Plus, Loader2,
+  Users, Filter, GitBranch, Phone, Mail, MapPin, Building2, TrendingUp
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -45,6 +46,13 @@ const statusColor: Record<string, string> = {
   approved: 'bg-green-500/10 text-green-400 border-green-500/20',
   rejected: 'bg-red-500/10 text-red-400 border-red-500/20',
   active: 'bg-green-500/10 text-green-400 border-green-500/20',
+  // Lead status colors
+  new: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  contacted: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+  quotation_sent: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  negotiation: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+  won: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  lost: 'bg-red-500/10 text-red-400 border-red-500/20',
 }
 
 const priorityIcon: Record<string, React.ReactNode> = {
@@ -58,6 +66,8 @@ const tabs: { id: EmployeeTab; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
   { id: 'attendance', label: 'Attendance', icon: <Clock className="w-4 h-4" /> },
   { id: 'tasks', label: 'My Tasks', icon: <CheckSquare className="w-4 h-4" /> },
+  { id: 'leads', label: 'My Leads', icon: <Users className="w-4 h-4" /> },
+  { id: 'pipeline', label: 'Pipeline', icon: <GitBranch className="w-4 h-4" /> },
   { id: 'salary', label: 'Salary', icon: <DollarSign className="w-4 h-4" /> },
   { id: 'leaves', label: 'Leaves', icon: <CalendarDays className="w-4 h-4" /> },
 ]
@@ -76,6 +86,10 @@ export default function EmployeePortal() {
   const [leaveDialog, setLeaveDialog] = useState(false)
   const [taskFilter, setTaskFilter] = useState('all')
   const [submitting, setSubmitting] = useState(false)
+  const [leads, setLeads] = useState<any[]>([])
+  const [pipelineDeals, setPipelineDeals] = useState<any[]>([])
+  const [leadDialog, setLeadDialog] = useState(false)
+  const [newLead, setNewLead] = useState({ name: '', company: '', phone: '', email: '', city: '', requirement: '', message: '', source: 'website' })
 
   // Fetch employee record for logged-in user
   const fetchEmployee = useCallback(async (userId: string) => {
@@ -161,6 +175,34 @@ export default function EmployeePortal() {
     }
   }, [])
 
+  // Fetch leads assigned to this employee
+  const fetchLeadsData = useCallback(async (userId: string) => {
+    try {
+      const res = await fetch(`/api/leads?assignedTo=${userId}&limit=50`)
+      const data = await res.json()
+      if (data.status) {
+        const raw = data.data?.leads || data.data || []
+        setLeads(Array.isArray(raw) ? raw : [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch leads:', err)
+    }
+  }, [])
+
+  // Fetch pipeline deals
+  const fetchPipelineDeals = useCallback(async () => {
+    try {
+      const res = await fetch('/api/pipeline-deals?limit=50')
+      const data = await res.json()
+      if (data.status) {
+        const raw = data.data?.deals || data.data || []
+        setPipelineDeals(Array.isArray(raw) ? raw : [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch pipeline deals:', err)
+    }
+  }, [])
+
   // Load all data on mount
   useEffect(() => {
     const loadData = async () => {
@@ -174,6 +216,8 @@ export default function EmployeePortal() {
             fetchTasks(emp.id),
             fetchLeaves(emp.id),
             fetchSalarySlips(emp.id),
+            fetchLeadsData(user.id),
+            fetchPipelineDeals(),
           ])
         }
       } catch (err) {
@@ -183,7 +227,7 @@ export default function EmployeePortal() {
       }
     }
     loadData()
-  }, [user?.id, fetchEmployee, fetchAttendance, fetchTasks, fetchLeaves, fetchSalarySlips])
+  }, [user?.id, fetchEmployee, fetchAttendance, fetchTasks, fetchLeaves, fetchSalarySlips, fetchLeadsData, fetchPipelineDeals])
 
   // Check-in / Check-out handler
   const handleCheckIn = async () => {
@@ -285,6 +329,62 @@ export default function EmployeePortal() {
       }
     } catch {
       toast.error('Failed to apply for leave')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Update lead status
+  const handleLeadStatus = async (leadId: string, status: string) => {
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, status }),
+      })
+      const data = await res.json()
+      if (data.status) {
+        toast.success(`Lead status updated to ${status.replace('_', ' ')}`)
+        setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status } : l))
+      } else {
+        toast.error(data.message || 'Failed to update lead status')
+      }
+    } catch {
+      toast.error('Failed to update lead status')
+    }
+  }
+
+  // Create new lead
+  const handleCreateLead = async () => {
+    if (!user?.id) {
+      toast.error('User not found')
+      return
+    }
+    if (!newLead.name || !newLead.phone) {
+      toast.error('Name and phone are required')
+      return
+    }
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...newLead,
+          assignedTo: user.id,
+        }),
+      })
+      const data = await res.json()
+      if (data.status) {
+        toast.success('Lead created successfully')
+        setLeadDialog(false)
+        setNewLead({ name: '', company: '', phone: '', email: '', city: '', requirement: '', message: '', source: 'website' })
+        await fetchLeadsData(user.id)
+      } else {
+        toast.error(data.message || 'Failed to create lead')
+      }
+    } catch {
+      toast.error('Failed to create lead')
     } finally {
       setSubmitting(false)
     }
@@ -689,6 +789,213 @@ export default function EmployeePortal() {
                 </div>
               )}
 
+              {/* ===================== LEADS TAB ===================== */}
+              {employeeTab === 'leads' && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-[family-name:var(--font-poppins)] text-lg font-bold text-white">My Leads</h2>
+                    <Button
+                      onClick={() => setLeadDialog(true)}
+                      size="sm"
+                      className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />New Lead
+                    </Button>
+                  </div>
+
+                  {/* Lead Stats */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-[#59ff00]/10 flex items-center justify-center">
+                          <Users className="w-4 h-4 text-[#59ff00]" />
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-xs">Total Leads</div>
+                          <div className="text-[#59ff00] font-semibold text-lg">{leads.length}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                          <Filter className="w-4 h-4 text-blue-400" />
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-xs">New</div>
+                          <div className="text-blue-400 font-semibold text-lg">{leads.filter(l => l.status === 'new').length}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                          <TrendingUp className="w-4 h-4 text-yellow-400" />
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-xs">In Progress</div>
+                          <div className="text-yellow-400 font-semibold text-lg">
+                            {leads.filter(l => ['contacted', 'quotation_sent', 'negotiation'].includes(l.status)).length}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-xs">Won</div>
+                          <div className="text-emerald-400 font-semibold text-lg">{leads.filter(l => l.status === 'won').length}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lead Cards */}
+                  {leads.length === 0 ? (
+                    <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-8 text-center">
+                      <Users className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                      <h3 className="text-gray-400 font-semibold mb-1">No Leads Yet</h3>
+                      <p className="text-gray-600 text-sm">Create your first lead to get started</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
+                      {leads.map((lead: any) => (
+                        <div key={lead.id} className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-4 hover:border-[#59ff00]/20 transition-colors">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-white font-semibold text-sm truncate">{lead.name}</h3>
+                                <Badge className={`${statusColor[lead.status] || ''} text-xs shrink-0`}>
+                                  {lead.status?.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                              {lead.company && (
+                                <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-2">
+                                  <Building2 className="w-3 h-3" />{lead.company}
+                                </div>
+                              )}
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+                                {lead.phone && (
+                                  <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{lead.phone}</span>
+                                )}
+                                {lead.email && (
+                                  <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{lead.email}</span>
+                                )}
+                                {lead.city && (
+                                  <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{lead.city}</span>
+                                )}
+                              </div>
+                              {lead.requirement && (
+                                <p className="text-gray-600 text-xs mt-2 line-clamp-2">{lead.requirement}</p>
+                              )}
+                              {lead.source && (
+                                <span className="inline-block mt-2 text-xs text-gray-500 bg-[#1a1a1a] px-2 py-0.5 rounded capitalize">
+                                  Source: {lead.source}
+                                </span>
+                              )}
+                            </div>
+                            <div className="shrink-0">
+                              <Select onValueChange={(val) => handleLeadStatus(lead.id, val)}>
+                                <SelectTrigger className="w-8 h-8 bg-[#1a1a1a] border-[#2a2a2a] p-0">
+                                  <ChevronDown className="w-3 h-3 text-gray-500" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                                  <SelectItem value="new">New</SelectItem>
+                                  <SelectItem value="contacted">Contacted</SelectItem>
+                                  <SelectItem value="quotation_sent">Quotation Sent</SelectItem>
+                                  <SelectItem value="negotiation">Negotiation</SelectItem>
+                                  <SelectItem value="won">Won</SelectItem>
+                                  <SelectItem value="lost">Lost</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ===================== PIPELINE TAB ===================== */}
+              {employeeTab === 'pipeline' && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-[family-name:var(--font-poppins)] text-lg font-bold text-white">Pipeline</h2>
+                    <span className="text-gray-500 text-sm">{pipelineDeals.length} deals</span>
+                  </div>
+
+                  {pipelineDeals.length === 0 ? (
+                    <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-8 text-center">
+                      <GitBranch className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+                      <h3 className="text-gray-400 font-semibold mb-1">No Pipeline Deals</h3>
+                      <p className="text-gray-600 text-sm">Pipeline deals will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="flex gap-4 overflow-x-auto pb-4">
+                      {(['new', 'contacted', 'quotation_sent', 'negotiation', 'won', 'lost'] as const).map(stage => {
+                        const stageDeals = pipelineDeals.filter((d: any) => d.stage === stage)
+                        return (
+                          <div key={stage} className="min-w-[260px] flex-shrink-0">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-2">
+                                <Badge className={`${statusColor[stage] || ''} text-xs`}>
+                                  {stage.replace('_', ' ')}
+                                </Badge>
+                              </div>
+                              <span className="text-gray-600 text-xs">{stageDeals.length}</span>
+                            </div>
+                            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1 custom-scrollbar">
+                              {stageDeals.map((deal: any) => {
+                                const probColor = deal.probability > 75
+                                  ? 'text-green-400'
+                                  : deal.probability > 50
+                                  ? 'text-yellow-400'
+                                  : 'text-red-400'
+                                const probBg = deal.probability > 75
+                                  ? 'bg-green-500/10 border-green-500/20'
+                                  : deal.probability > 50
+                                  ? 'bg-yellow-500/10 border-yellow-500/20'
+                                  : 'bg-red-500/10 border-red-500/20'
+                                return (
+                                  <div key={deal.id} className="bg-[#151515] border border-[#2a2a2a] rounded-lg p-3 hover:border-[#59ff00]/20 transition-colors">
+                                    <h4 className="text-white text-sm font-semibold truncate">{deal.title}</h4>
+                                    {deal.leadName && (
+                                      <p className="text-gray-500 text-xs mt-0.5 truncate">{deal.leadName}</p>
+                                    )}
+                                    <div className="flex items-center justify-between mt-2">
+                                      {deal.value && (
+                                        <span className="text-[#59ff00] text-xs font-medium">{formatPrice(deal.value)}</span>
+                                      )}
+                                      <span className={`text-xs font-medium px-2 py-0.5 rounded border ${probBg} ${probColor}`}>
+                                        {deal.probability || 0}%
+                                      </span>
+                                    </div>
+                                    {deal.closeDate && (
+                                      <div className="text-gray-600 text-xs mt-2">
+                                        Close: {formatDate(deal.closeDate)}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                              {stageDeals.length === 0 && (
+                                <div className="bg-[#1a1a1a] border border-[#2a2a2a] border-dashed rounded-lg p-4 text-center text-gray-600 text-xs">
+                                  No deals
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ===================== SALARY TAB ===================== */}
               {employeeTab === 'salary' && (
                 <div>
@@ -785,6 +1092,106 @@ export default function EmployeePortal() {
           </div>
         </div>
       </div>
+
+      {/* New Lead Dialog */}
+      <Dialog open={leadDialog} onOpenChange={setLeadDialog}>
+        <DialogContent className="bg-[#151515] border-[#2a2a2a] text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#59ff00]">New Lead</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block">Name *</label>
+              <Input
+                value={newLead.name}
+                onChange={e => setNewLead(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Lead name"
+                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block">Company</label>
+              <Input
+                value={newLead.company}
+                onChange={e => setNewLead(prev => ({ ...prev, company: e.target.value }))}
+                placeholder="Company name"
+                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Phone *</label>
+                <Input
+                  value={newLead.phone}
+                  onChange={e => setNewLead(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Phone number"
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Email</label>
+                <Input
+                  type="email"
+                  value={newLead.email}
+                  onChange={e => setNewLead(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Email address"
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">City</label>
+                <Input
+                  value={newLead.city}
+                  onChange={e => setNewLead(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="City"
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1 block">Source</label>
+                <Select value={newLead.source} onValueChange={val => setNewLead(prev => ({ ...prev, source: val }))}>
+                  <SelectTrigger className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                    <SelectItem value="website">Website</SelectItem>
+                    <SelectItem value="referral">Referral</SelectItem>
+                    <SelectItem value="social">Social</SelectItem>
+                    <SelectItem value="direct">Direct</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block">Requirement</label>
+              <Input
+                value={newLead.requirement}
+                onChange={e => setNewLead(prev => ({ ...prev, requirement: e.target.value }))}
+                placeholder="What do they need?"
+                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-gray-400 mb-1 block">Message</label>
+              <Textarea
+                value={newLead.message}
+                onChange={e => setNewLead(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Additional notes..."
+                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+              />
+            </div>
+            <Button
+              onClick={handleCreateLead}
+              disabled={submitting}
+              className="w-full bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold"
+            >
+              {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : 'Create Lead'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Apply Leave Dialog */}
       <Dialog open={leaveDialog} onOpenChange={setLeaveDialog}>

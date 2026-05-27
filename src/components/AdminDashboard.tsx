@@ -37,8 +37,32 @@ import CrmModules from './admin/CrmModules'
 import HrmModules from './admin/HrmModulesNew'
 import Dialogs from './admin/Dialogs'
 
+// ─── Role-Based Sidebar Filtering ─────────────────────────
+const MANAGER_HIDDEN_ITEMS = new Set([
+  'crm-forms', 'crm-imports', 'crm-integrations', 'crm-email-sequences',
+  'hrm-permissions', 'hrm-recruitment', 'hrm-job-openings', 'hrm-interviews',
+  'hrm-performance', 'hrm-appraisals', 'hrm-training', 'hrm-assets', 'hrm-documents',
+])
+
+function filterItemsByRole(items: typeof MAIN_NAV_ITEMS, roleName: string) {
+  if (roleName === 'admin') return items
+  return items.filter(item => !MANAGER_HIDDEN_ITEMS.has(item.key))
+}
+
+function filterSectionsByRole(sections: { label: string; items: typeof MAIN_NAV_ITEMS }[], roleName: string) {
+  return sections.map(s => ({
+    ...s,
+    items: filterItemsByRole(s.items, roleName),
+  })).filter(s => s.items.length > 0)
+}
+
+function filterGroupByRole(group: typeof CRM_GROUP, roleName: string) {
+  return { ...group, sections: filterSectionsByRole(group.sections, roleName) }
+}
+
 export default function AdminDashboard() {
-  const { adminTab, setAdminTab, setUser, setView } = useAppStore()
+  const { adminTab, setAdminTab, setUser, setView, user } = useAppStore()
+  const roleName = (user as any)?.role?.roleName || 'admin'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -243,9 +267,13 @@ export default function AdminDashboard() {
   const openOrderDetail = (order: any) => { fetch(`/api/orders/${order.id}`).then(r => r.json()).then(j => { if (j.status) { setSelectedOrder(j.data); setOrderDialog(true) } }).catch(console.error) }
   const onOpenQuotationFromLead = () => { setQuotationCustomerName(selectedLead?.name || ''); setQuotationCustomerCompany(selectedLead?.company || ''); setQuotationCustomerEmail(selectedLead?.email || ''); setQuotationCustomerPhone(selectedLead?.phone || ''); setQuotationCustomerAddress(selectedLead?.city ? `${selectedLead.city}, India` : ''); setQuotationCustomerGst(''); setQuotationItems([{ desc: '', hsn: '', qty: '1', unit: 'Nos', rate: '', discount: '0', gstPercent: '18' }]); setQuotationValidUntil(''); setQuotationNotes(''); setQuotationDeliveryPeriod('2-3 weeks'); setQuotationInstallation('Included'); setQuotationWarranty('12 months against manufacturing defects'); setQuotationDialog(true) }
 
+  // ─── Role-filtered sidebar groups ──────────────────────────
+  const filteredCrmGroup = filterGroupByRole(CRM_GROUP, roleName)
+  const filteredHrmGroup = filterGroupByRole(HRM_GROUP, roleName)
+
   // ─── Sidebar state ──────────────────────────────────────
-  const isCrmTab = CRM_GROUP.sections.flatMap(s => s.items).some(i => i.key === adminTab)
-  const isHrmTab = HRM_GROUP.sections.flatMap(s => s.items).some(i => i.key === adminTab)
+  const isCrmTab = filteredCrmGroup.sections.flatMap(s => s.items).some(i => i.key === adminTab)
+  const isHrmTab = filteredHrmGroup.sections.flatMap(s => s.items).some(i => i.key === adminTab)
   const effectiveCrmExpanded = isCrmTab ? true : crmExpanded
   const effectiveHrmExpanded = isHrmTab ? true : hrmExpanded
 
@@ -281,10 +309,22 @@ export default function AdminDashboard() {
     }
   }
 
+  // ─── Employee redirect ────────────────────────────────────
+  useEffect(() => {
+    if (roleName === 'employee') {
+      setView('employee-portal')
+    }
+  }, [roleName, setView])
+
+  if (roleName === 'employee') {
+    return null
+  }
+
   // ─── Sidebar Nav Items Renderer ─────────────────────────
+  const visibleMainNavItems = filterItemsByRole(MAIN_NAV_ITEMS, roleName)
   const renderNavItems = (isMobile: boolean) => (
     <>
-      {filterSidebarItems(MAIN_NAV_ITEMS, sidebarSearch).map(({ key, label, icon: Icon }) => (
+      {filterSidebarItems(visibleMainNavItems, sidebarSearch).map(({ key, label, icon: Icon }) => (
         <button key={key} onClick={() => { setAdminTab(key); setMobileOpen(false) }}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${adminTab === key ? 'bg-[#59ff00]/10 text-[#59ff00] border border-[#59ff00]/20' : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'}`}
           title={sidebarCollapsed && !isMobile ? label : undefined}>
@@ -343,8 +383,8 @@ export default function AdminDashboard() {
           {!sidebarCollapsed && (<div className="px-3 py-2"><div className="relative"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" /><Input placeholder="Search menu..." value={sidebarSearch} onChange={(e) => setSidebarSearch(e.target.value)} className="pl-8 bg-[#0b0b0b] border-[#2a2a2a] text-white placeholder:text-gray-600 h-8 text-xs rounded-lg" />{sidebarSearch && (<button onClick={() => setSidebarSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"><X className="w-3 h-3" /></button>)}</div></div>)}
           <nav className="flex-1 py-1 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
             {renderNavItems(false)}
-            {renderGroupDropdown(CRM_GROUP, effectiveCrmExpanded, setCrmExpanded, isCrmTab, false)}
-            {renderGroupDropdown(HRM_GROUP, effectiveHrmExpanded, setHrmExpanded, isHrmTab, false)}
+            {renderGroupDropdown(filteredCrmGroup, effectiveCrmExpanded, setCrmExpanded, isCrmTab, false)}
+            {renderGroupDropdown(filteredHrmGroup, effectiveHrmExpanded, setHrmExpanded, isHrmTab, false)}
           </nav>
           <div className="p-2 border-t border-[#2a2a2a]"><button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 text-sm" title={sidebarCollapsed ? 'Logout' : undefined}><LogOut className="w-5 h-5 flex-shrink-0" />{!sidebarCollapsed && <span>Logout</span>}</button></div>
         </div>
@@ -360,8 +400,8 @@ export default function AdminDashboard() {
             <div className="px-3 py-2"><div className="relative"><Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" /><Input placeholder="Search menu..." value={sidebarSearch} onChange={(e) => setSidebarSearch(e.target.value)} className="pl-8 bg-[#0b0b0b] border-[#2a2a2a] text-white placeholder:text-gray-600 h-8 text-xs rounded-lg" /></div></div>
             <nav className="flex-1 py-1 px-2 space-y-0.5 overflow-y-auto custom-scrollbar">
               {renderNavItems(true)}
-              {renderGroupDropdown(CRM_GROUP, effectiveCrmExpanded, setCrmExpanded, isCrmTab, true)}
-              {renderGroupDropdown(HRM_GROUP, effectiveHrmExpanded, setHrmExpanded, isHrmTab, true)}
+              {renderGroupDropdown(filteredCrmGroup, effectiveCrmExpanded, setCrmExpanded, isCrmTab, true)}
+              {renderGroupDropdown(filteredHrmGroup, effectiveHrmExpanded, setHrmExpanded, isHrmTab, true)}
             </nav>
             <div className="p-2 border-t border-[#2a2a2a]"><button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 text-sm"><LogOut className="w-5 h-5 flex-shrink-0" /><span>Logout</span></button></div>
           </div>
