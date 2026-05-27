@@ -552,7 +552,8 @@ class QuotationPDFBuilder {
       const unit = String(item.unit || 'Nos')
       const rate = Number(item.rate || 0)
       const discount = Number(item.discount || 0)
-      const gstPercent = Number(item.gstPercent || 0)
+      // GST is always 18% as per company policy
+      const gstPercent = 18
       const amount = Number(item.amount || 0)
 
       colX = this.margin

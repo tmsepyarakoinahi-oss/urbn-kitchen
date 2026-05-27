@@ -37,23 +37,7 @@ export type AdminTab =
   | 'crm-leads'
   | 'crm-companies'
   | 'crm-pipelines'
-  | 'crm-calendar'
-  | 'crm-forms'
-  | 'crm-imports'
-  | 'crm-conversations'
-  | 'crm-email-templates'
-  | 'crm-email-sequences'
   | 'crm-pipeline'
-  | 'crm-kanban'
-  | 'crm-integrations'
-  | 'crm-lead-sources'
-
-  // CRM Sales
-  | 'crm-sales'
-  | 'crm-quotes'
-  | 'crm-invoices'
-  | 'crm-billing'
-  | 'crm-sales-calendar'
   // HRM sub-tabs
   | 'hrm-dashboard'
   | 'hrm-employees'

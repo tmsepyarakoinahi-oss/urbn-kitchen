@@ -337,10 +337,10 @@ export default function EmployeePortal() {
   // Update lead status
   const handleLeadStatus = async (leadId: string, status: string) => {
     try {
-      const res = await fetch('/api/leads', {
+      const res = await fetch(`/api/leads/${leadId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId, status }),
+        body: JSON.stringify({ status }),
       })
       const data = await res.json()
       if (data.status) {
