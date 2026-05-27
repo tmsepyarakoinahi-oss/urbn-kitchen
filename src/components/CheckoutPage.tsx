@@ -148,6 +148,7 @@ export default function CheckoutPage() {
     notes: '',
   })
   const [shippingErrors, setShippingErrors] = useState<FormErrors>({})
+  const [shippingTouched, setShippingTouched] = useState<Record<string, boolean>>({})
 
   // Payment state
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod')
@@ -289,8 +290,8 @@ export default function CheckoutPage() {
     if (!shipping.fullName.trim()) errors.fullName = 'Full name is required'
     if (!shipping.phone.trim()) errors.phone = 'Phone number is required'
     else if (shipping.phone.replace(/\D/g, '').length < 10) errors.phone = 'Enter a valid phone number'
-    if (!shipping.email.trim()) errors.shipEmail = 'Email is required'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email)) errors.shipEmail = 'Invalid email format'
+    if (!shipping.email.trim()) errors.email = 'Email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(shipping.email)) errors.email = 'Invalid email format'
     if (!shipping.address1.trim()) errors.address1 = 'Address is required'
     if (!shipping.city.trim()) errors.city = 'City is required'
     if (!shipping.state.trim()) errors.state = 'State is required'
@@ -303,7 +304,66 @@ export default function CheckoutPage() {
     return Object.keys(errors).length === 0
   }
 
+  // Clear individual error when user starts typing in that field
+  const handleShippingChange = (field: keyof ShippingData, value: string) => {
+    setShipping(prev => ({ ...prev, [field]: value }))
+    // Clear error for this field on change
+    if (shippingErrors[field]) {
+      setShippingErrors(prev => {
+        const next = { ...prev }
+        delete next[field]
+        return next
+      })
+    }
+  }
+
+  // Mark field as touched on blur and validate it
+  const handleShippingBlur = (field: keyof ShippingData) => {
+    setShippingTouched(prev => ({ ...prev, [field]: true }))
+    // Inline validate just this field
+    const val = shipping[field].trim()
+    const errors: FormErrors = {}
+    switch (field) {
+      case 'fullName': if (!val) errors.fullName = 'Full name is required'; break
+      case 'phone':
+        if (!val) errors.phone = 'Phone number is required'
+        else if (val.replace(/\D/g, '').length < 10) errors.phone = 'Enter a valid phone number'
+        break
+      case 'email':
+        if (!val) errors.email = 'Email is required'
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) errors.email = 'Invalid email format'
+        break
+      case 'address1': if (!val) errors.address1 = 'Address is required'; break
+      case 'city': if (!val) errors.city = 'City is required'; break
+      case 'state': if (!val) errors.state = 'State is required'; break
+      case 'pincode':
+        if (!val) errors.pincode = 'PIN code is required'
+        else if (!/^\d{6}$/.test(val)) errors.pincode = 'Enter a valid 6-digit PIN code'
+        break
+      case 'gstNumber':
+        if (val && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(val))
+          errors.gstNumber = 'Enter a valid GST number'
+        break
+    }
+    // Merge: remove old error for this field, add new if any
+    setShippingErrors(prev => {
+      const next = { ...prev }
+      delete next[field]
+      const errorMsg = errors[field]
+      if (errorMsg) {
+        next[field] = errorMsg
+      }
+      return next
+    })
+  }
+
   const handleShippingNext = () => {
+    // Mark all fields as touched
+    setShippingTouched({
+      fullName: true, phone: true, email: true,
+      address1: true, city: true, state: true,
+      pincode: true, gstNumber: true,
+    })
     if (validateShipping()) goNext()
   }
 
@@ -586,8 +646,8 @@ export default function CheckoutPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={loginForm.email}
-                  onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+                  onChange={(e) => { setLoginForm(prev => ({ ...prev, email: e.target.value })); if (authErrors.email) setAuthErrors(prev => { const n = {...prev}; delete n.email; return n }) }}
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                 />
                 {authErrors.email && <p className="text-red-400 text-xs mt-1">{authErrors.email}</p>}
@@ -600,8 +660,8 @@ export default function CheckoutPage() {
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={loginForm.password}
-                    onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 pr-10 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+                    onChange={(e) => { setLoginForm(prev => ({ ...prev, password: e.target.value })); if (authErrors.password) setAuthErrors(prev => { const n = {...prev}; delete n.password; return n }) }}
+                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 pr-10 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
                     onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                   />
                   <button
@@ -634,8 +694,8 @@ export default function CheckoutPage() {
                 <Input
                   placeholder="John Doe"
                   value={registerForm.name}
-                  onChange={(e) => setRegisterForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+                  onChange={(e) => { setRegisterForm(prev => ({ ...prev, name: e.target.value })); if (authErrors.regName) setAuthErrors(prev => { const n = {...prev}; delete n.regName; return n }) }}
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
                 />
                 {authErrors.regName && <p className="text-red-400 text-xs mt-1">{authErrors.regName}</p>}
               </div>
@@ -646,8 +706,8 @@ export default function CheckoutPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={registerForm.email}
-                  onChange={(e) => setRegisterForm(prev => ({ ...prev, email: e.target.value }))}
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+                  onChange={(e) => { setRegisterForm(prev => ({ ...prev, email: e.target.value })); if (authErrors.regEmail) setAuthErrors(prev => { const n = {...prev}; delete n.regEmail; return n }) }}
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
                 />
                 {authErrors.regEmail && <p className="text-red-400 text-xs mt-1">{authErrors.regEmail}</p>}
               </div>
@@ -658,8 +718,8 @@ export default function CheckoutPage() {
                   type="tel"
                   placeholder="9876543210"
                   value={registerForm.phone}
-                  onChange={(e) => setRegisterForm(prev => ({ ...prev, phone: e.target.value }))}
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+                  onChange={(e) => { setRegisterForm(prev => ({ ...prev, phone: e.target.value })); if (authErrors.regPhone) setAuthErrors(prev => { const n = {...prev}; delete n.regPhone; return n }) }}
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
                 />
                 {authErrors.regPhone && <p className="text-red-400 text-xs mt-1">{authErrors.regPhone}</p>}
               </div>
@@ -671,8 +731,8 @@ export default function CheckoutPage() {
                     type={showRegPassword ? 'text' : 'password'}
                     placeholder="Min 6 characters"
                     value={registerForm.password}
-                    onChange={(e) => setRegisterForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 pr-10 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+                    onChange={(e) => { setRegisterForm(prev => ({ ...prev, password: e.target.value })); if (authErrors.regPassword) setAuthErrors(prev => { const n = {...prev}; delete n.regPassword; return n }) }}
+                    className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 pr-10 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
                   />
                   <button
                     type="button"
@@ -691,8 +751,8 @@ export default function CheckoutPage() {
                   type="password"
                   placeholder="Re-enter your password"
                   value={registerForm.confirmPassword}
-                  onChange={(e) => setRegisterForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+                  onChange={(e) => { setRegisterForm(prev => ({ ...prev, confirmPassword: e.target.value })); if (authErrors.regConfirmPassword) setAuthErrors(prev => { const n = {...prev}; delete n.regConfirmPassword; return n }) }}
+                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
                 />
                 {authErrors.regConfirmPassword && <p className="text-red-400 text-xs mt-1">{authErrors.regConfirmPassword}</p>}
               </div>
@@ -738,10 +798,13 @@ export default function CheckoutPage() {
             <Input
               placeholder="Full Name"
               value={shipping.fullName}
-              onChange={(e) => setShipping(prev => ({ ...prev, fullName: e.target.value }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('fullName', e.target.value)}
+              onBlur={() => handleShippingBlur('fullName')}
+              className={`bg-[#1a1a1a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30 ${shippingTouched.fullName && shippingErrors.fullName ? 'border-red-500/60 focus-visible:border-red-400 focus-visible:ring-red-400/20' : 'border-[#2a2a2a]'}`}
             />
-            {shippingErrors.fullName && <p className="text-red-400 text-xs mt-1">{shippingErrors.fullName}</p>}
+            {shippingTouched.fullName && shippingErrors.fullName && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.fullName}</p>
+            )}
           </div>
 
           {/* Phone */}
@@ -753,10 +816,13 @@ export default function CheckoutPage() {
               type="tel"
               placeholder="9876543210"
               value={shipping.phone}
-              onChange={(e) => setShipping(prev => ({ ...prev, phone: e.target.value }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('phone', e.target.value)}
+              onBlur={() => handleShippingBlur('phone')}
+              className={`bg-[#1a1a1a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30 ${shippingTouched.phone && shippingErrors.phone ? 'border-red-500/60 focus-visible:border-red-400 focus-visible:ring-red-400/20' : 'border-[#2a2a2a]'}`}
             />
-            {shippingErrors.phone && <p className="text-red-400 text-xs mt-1">{shippingErrors.phone}</p>}
+            {shippingTouched.phone && shippingErrors.phone && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.phone}</p>
+            )}
           </div>
 
           {/* Email */}
@@ -768,10 +834,13 @@ export default function CheckoutPage() {
               type="email"
               placeholder="you@example.com"
               value={shipping.email}
-              onChange={(e) => setShipping(prev => ({ ...prev, email: e.target.value }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('email', e.target.value)}
+              onBlur={() => handleShippingBlur('email')}
+              className={`bg-[#1a1a1a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30 ${shippingTouched.email && shippingErrors.email ? 'border-red-500/60 focus-visible:border-red-400 focus-visible:ring-red-400/20' : 'border-[#2a2a2a]'}`}
             />
-            {shippingErrors.shipEmail && <p className="text-red-400 text-xs mt-1">{shippingErrors.shipEmail}</p>}
+            {shippingTouched.email && shippingErrors.email && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.email}</p>
+            )}
           </div>
 
           {/* Address Line 1 */}
@@ -782,10 +851,13 @@ export default function CheckoutPage() {
             <Input
               placeholder="House no., Building, Street"
               value={shipping.address1}
-              onChange={(e) => setShipping(prev => ({ ...prev, address1: e.target.value }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('address1', e.target.value)}
+              onBlur={() => handleShippingBlur('address1')}
+              className={`bg-[#1a1a1a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30 ${shippingTouched.address1 && shippingErrors.address1 ? 'border-red-500/60 focus-visible:border-red-400 focus-visible:ring-red-400/20' : 'border-[#2a2a2a]'}`}
             />
-            {shippingErrors.address1 && <p className="text-red-400 text-xs mt-1">{shippingErrors.address1}</p>}
+            {shippingTouched.address1 && shippingErrors.address1 && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.address1}</p>
+            )}
           </div>
 
           {/* Address Line 2 */}
@@ -794,8 +866,8 @@ export default function CheckoutPage() {
             <Input
               placeholder="Area, Colony, Landmark (Optional)"
               value={shipping.address2}
-              onChange={(e) => setShipping(prev => ({ ...prev, address2: e.target.value }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('address2', e.target.value)}
+              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
             />
           </div>
 
@@ -807,10 +879,13 @@ export default function CheckoutPage() {
             <Input
               placeholder="City"
               value={shipping.city}
-              onChange={(e) => setShipping(prev => ({ ...prev, city: e.target.value }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('city', e.target.value)}
+              onBlur={() => handleShippingBlur('city')}
+              className={`bg-[#1a1a1a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30 ${shippingTouched.city && shippingErrors.city ? 'border-red-500/60 focus-visible:border-red-400 focus-visible:ring-red-400/20' : 'border-[#2a2a2a]'}`}
             />
-            {shippingErrors.city && <p className="text-red-400 text-xs mt-1">{shippingErrors.city}</p>}
+            {shippingTouched.city && shippingErrors.city && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.city}</p>
+            )}
           </div>
 
           {/* State */}
@@ -820,15 +895,18 @@ export default function CheckoutPage() {
             </Label>
             <select
               value={shipping.state}
-              onChange={(e) => setShipping(prev => ({ ...prev, state: e.target.value }))}
-              className="w-full h-11 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-md px-3 text-sm focus:outline-none focus:border-[#59ff00] focus:ring-1 focus:ring-[#59ff00]/20 appearance-none cursor-pointer"
+              onChange={(e) => { handleShippingChange('state', e.target.value); handleShippingBlur('state') }}
+              onBlur={() => handleShippingBlur('state')}
+              className={`w-full h-11 bg-[#1a1a1a] text-white rounded-md px-3 text-sm focus:outline-none focus:border-[#59ff00] focus:ring-1 focus:ring-[#59ff00]/30 appearance-none cursor-pointer ${shippingTouched.state && shippingErrors.state ? 'border-2 border-red-500/60 focus:border-red-400 focus:ring-red-400/20' : 'border border-[#2a2a2a]'}`}
             >
               <option value="" className="bg-[#1a1a1a]">Select State</option>
               {INDIAN_STATES.map(state => (
                 <option key={state} value={state} className="bg-[#1a1a1a]">{state}</option>
               ))}
             </select>
-            {shippingErrors.state && <p className="text-red-400 text-xs mt-1">{shippingErrors.state}</p>}
+            {shippingTouched.state && shippingErrors.state && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.state}</p>
+            )}
           </div>
 
           {/* PIN Code */}
@@ -841,10 +919,13 @@ export default function CheckoutPage() {
               placeholder="110001"
               maxLength={6}
               value={shipping.pincode}
-              onChange={(e) => setShipping(prev => ({ ...prev, pincode: e.target.value.replace(/\D/g, '') }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('pincode', e.target.value.replace(/\D/g, ''))}
+              onBlur={() => handleShippingBlur('pincode')}
+              className={`bg-[#1a1a1a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30 ${shippingTouched.pincode && shippingErrors.pincode ? 'border-red-500/60 focus-visible:border-red-400 focus-visible:ring-red-400/20' : 'border-[#2a2a2a]'}`}
             />
-            {shippingErrors.pincode && <p className="text-red-400 text-xs mt-1">{shippingErrors.pincode}</p>}
+            {shippingTouched.pincode && shippingErrors.pincode && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.pincode}</p>
+            )}
           </div>
 
           {/* GST Number */}
@@ -855,10 +936,13 @@ export default function CheckoutPage() {
             <Input
               placeholder="22AAAAA0000A1Z5"
               value={shipping.gstNumber}
-              onChange={(e) => setShipping(prev => ({ ...prev, gstNumber: e.target.value.toUpperCase() }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('gstNumber', e.target.value.toUpperCase())}
+              onBlur={() => handleShippingBlur('gstNumber')}
+              className={`bg-[#1a1a1a] text-white h-11 focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30 ${shippingTouched.gstNumber && shippingErrors.gstNumber ? 'border-red-500/60 focus-visible:border-red-400 focus-visible:ring-red-400/20' : 'border-[#2a2a2a]'}`}
             />
-            {shippingErrors.gstNumber && <p className="text-red-400 text-xs mt-1">{shippingErrors.gstNumber}</p>}
+            {shippingTouched.gstNumber && shippingErrors.gstNumber && (
+              <p className="text-red-400 text-xs mt-1 animate-in fade-in slide-in-from-top-1 duration-200">{shippingErrors.gstNumber}</p>
+            )}
           </div>
 
           {/* Order Notes */}
@@ -867,8 +951,8 @@ export default function CheckoutPage() {
             <Textarea
               placeholder="Special instructions for delivery (Optional)"
               value={shipping.notes}
-              onChange={(e) => setShipping(prev => ({ ...prev, notes: e.target.value }))}
-              className="bg-[#1a1a1a] border-[#2a2a2a] text-white min-h-[80px] focus-visible:border-[#59ff00] focus-visible:ring-[#59ff00]/20"
+              onChange={(e) => handleShippingChange('notes', e.target.value)}
+              className="bg-[#1a1a1a] border-[#2a2a2a] text-white min-h-[80px] focus-visible:border-[#59ff00] focus-visible:ring-1 focus-visible:ring-[#59ff00]/30"
             />
           </div>
         </div>
@@ -884,6 +968,7 @@ export default function CheckoutPage() {
             Back to Cart
           </Button>
           <Button
+            type="button"
             onClick={handleShippingNext}
             className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold h-12 px-6 neon-glow"
           >
