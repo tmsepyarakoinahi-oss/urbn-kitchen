@@ -194,6 +194,8 @@ export default function ProductDetailPage() {
   const hasShortDesc = !!product.shortDescription
   const hasLongDesc = !!product.longDescription
   const hasBasicDesc = !!product.description
+  // Always show Full Details tab - use longDescription or fallback to description
+  const fullDetailsContent = product.longDescription || product.description || 'No detailed description available for this product.'
 
   return (
     <div className="min-h-screen bg-[#0b0b0b] pt-20 md:pt-24">
@@ -215,17 +217,17 @@ export default function ProductDetailPage() {
             transition={{ duration: 0.5 }}
           >
             <div className="relative h-72 sm:h-96 lg:h-[500px] bg-[#151515] border border-[#2a2a2a] rounded-xl flex items-center justify-center overflow-hidden">
-              {(product as any).featuredImage ? (
-                <img src={(product as any).featuredImage} alt={product.name} className="w-full h-full object-cover" />
+              {product.featuredImage ? (
+                <img src={product.featuredImage} alt={product.name} className="w-full h-full object-cover" />
               ) : (
                 <div className="flex flex-col items-center gap-3">
-                  <span className="text-6xl">{categoryEmoji}</span>
+                  <span className="text-8xl">{categoryEmoji}</span>
                   <span className="text-gray-500 text-sm">No image available</span>
                 </div>
               )}
               {product.featured && (
                 <Badge className="absolute top-4 right-4 bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30">
-                  Featured
+                  ⭐ Featured
                 </Badge>
               )}
               <Badge className="absolute top-4 left-4 bg-[#0b0b0b]/80 text-gray-300 border-[#2a2a2a]">
@@ -253,7 +255,10 @@ export default function ProductDetailPage() {
 
             {/* Short Description */}
             {hasShortDesc && (
-              <p className="text-gray-400 text-sm mb-4 leading-relaxed">{product.shortDescription}</p>
+              <p className="text-gray-300 text-sm mb-4 leading-relaxed border-l-2 border-[#59ff00]/40 pl-3">{product.shortDescription}</p>
+            )}
+            {!hasShortDesc && hasBasicDesc && (
+              <p className="text-gray-400 text-sm mb-4 leading-relaxed border-l-2 border-[#59ff00]/40 pl-3">{product.description}</p>
             )}
 
             {/* Price */}
@@ -294,7 +299,7 @@ export default function ProductDetailPage() {
                 <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
                   <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
                     <Shield className="w-3.5 h-3.5" />
-                    Steel Grade
+                    🔩 Steel Grade
                   </div>
                   <div className="text-white text-sm font-semibold">{product.steelGrade}</div>
                 </div>
@@ -303,7 +308,7 @@ export default function ProductDetailPage() {
                 <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
                   <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
                     <Package className="w-3.5 h-3.5" />
-                    Capacity
+                    📦 Capacity
                   </div>
                   <div className="text-white text-sm font-semibold">{product.capacity}</div>
                 </div>
@@ -312,7 +317,7 @@ export default function ProductDetailPage() {
                 <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
                   <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
                     <Package className="w-3.5 h-3.5" />
-                    Dimensions
+                    📐 Dimensions
                   </div>
                   <div className="text-white text-sm font-semibold">{selectedVariant?.dimensions || product.dimensions}</div>
                 </div>
@@ -321,7 +326,7 @@ export default function ProductDetailPage() {
                 <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
                   <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
                     <Clock className="w-3.5 h-3.5" />
-                    Lead Time
+                    🚚 Lead Time
                   </div>
                   <div className="text-white text-sm font-semibold">{product.leadTime}</div>
                 </div>
@@ -382,9 +387,9 @@ export default function ProductDetailPage() {
 
             {/* Trust badges */}
             <div className="flex items-center gap-4 text-xs text-gray-600 mt-2">
-              <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" /> Pan India Delivery</span>
-              <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5" /> Warranty Included</span>
-              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {product.leadTime || '7-10 days'}</span>
+              <span className="flex items-center gap-1"><Truck className="w-3.5 h-3.5" /> 🚚 Pan India Delivery</span>
+              <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5" /> 🛡️ Warranty Included</span>
+              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> ⏱️ {product.leadTime || '7-10 days'}</span>
             </div>
           </motion.div>
         </div>
@@ -396,32 +401,30 @@ export default function ProductDetailPage() {
           transition={{ delay: 0.3 }}
           className="mt-12"
         >
-          <Tabs defaultValue={hasLongDesc ? 'long-description' : 'description'} className="w-full">
+          <Tabs defaultValue="full-details" className="w-full">
             <TabsList className="bg-[#151515] border border-[#2a2a2a] p-1 h-auto">
-              <TabsTrigger value="description" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
                 <Info className="w-4 h-4 mr-1.5" />
                 Overview
               </TabsTrigger>
-              {hasLongDesc && (
-                <TabsTrigger value="long-description" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
-                  <FileText className="w-4 h-4 mr-1.5" />
-                  Full Details
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="full-details" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
+                <FileText className="w-4 h-4 mr-1.5" />
+                📋 Full Details
+              </TabsTrigger>
               <TabsTrigger value="specifications" className="data-[state=active]:bg-[#59ff00]/10 data-[state=active]:text-[#59ff00]">
                 <ListChecks className="w-4 h-4 mr-1.5" />
                 Specifications
               </TabsTrigger>
             </TabsList>
 
-            {/* Overview / Basic Description */}
-            <TabsContent value="description" className="mt-6">
+            {/* Overview - Quick Summary */}
+            <TabsContent value="overview" className="mt-6">
               <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-6">
                 {hasShortDesc && (
                   <div className="mb-4 pb-4 border-b border-[#2a2a2a]">
                     <h3 className="text-[#59ff00] text-sm font-semibold mb-2 flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4" />
-                      Quick Summary
+                      ✨ Quick Summary
                     </h3>
                     <p className="text-gray-300 text-sm leading-relaxed">{product.shortDescription}</p>
                   </div>
@@ -430,7 +433,7 @@ export default function ProductDetailPage() {
                   <div>
                     <h3 className="text-white text-sm font-semibold mb-2 flex items-center gap-2">
                       <Info className="w-4 h-4 text-gray-400" />
-                      Product Overview
+                      📝 Product Overview
                     </h3>
                     <p className="text-gray-400 leading-relaxed whitespace-pre-line">{product.description}</p>
                   </div>
@@ -440,20 +443,68 @@ export default function ProductDetailPage() {
               </div>
             </TabsContent>
 
-            {/* Long Description / Full Details */}
-            {hasLongDesc && (
-              <TabsContent value="long-description" className="mt-6">
-                <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-6">
-                  <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-[#59ff00]" />
-                    {product.name} — Full Details
-                  </h3>
-                  <div className="text-gray-400 leading-relaxed whitespace-pre-line text-sm">
+            {/* Full Details - Always shown, uses longDescription or falls back to description */}
+            <TabsContent value="full-details" className="mt-6">
+              <div className="bg-[#151515] border border-[#2a2a2a] rounded-xl p-6">
+                <h3 className="text-white text-lg font-bold mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-[#59ff00]" />
+                  {categoryEmoji} {product.name} — Full Details
+                </h3>
+                {hasLongDesc ? (
+                  <div className="text-gray-300 leading-relaxed whitespace-pre-line text-sm">
                     {product.longDescription}
                   </div>
+                ) : hasBasicDesc ? (
+                  <div className="text-gray-300 leading-relaxed whitespace-pre-line text-sm">
+                    {product.description}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm italic">No detailed description available for this product yet. Please contact us for more information.</p>
+                )}
+                {/* Key Features Section */}
+                <div className="mt-6 pt-4 border-t border-[#2a2a2a]">
+                  <h4 className="text-[#59ff00] text-sm font-semibold mb-3 flex items-center gap-2">
+                    🔑 Key Features
+                  </h4>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {product.steelGrade && (
+                      <li className="flex items-center gap-2 text-gray-400 text-sm">
+                        <span className="text-[#59ff00]">✓</span> Steel Grade: {product.steelGrade}
+                      </li>
+                    )}
+                    {product.capacity && (
+                      <li className="flex items-center gap-2 text-gray-400 text-sm">
+                        <span className="text-[#59ff00]">✓</span> Capacity: {product.capacity}
+                      </li>
+                    )}
+                    {(selectedVariant?.dimensions || product.dimensions) && (
+                      <li className="flex items-center gap-2 text-gray-400 text-sm">
+                        <span className="text-[#59ff00]">✓</span> Dimensions: {selectedVariant?.dimensions || product.dimensions}
+                      </li>
+                    )}
+                    {product.leadTime && (
+                      <li className="flex items-center gap-2 text-gray-400 text-sm">
+                        <span className="text-[#59ff00]">✓</span> Lead Time: {product.leadTime}
+                      </li>
+                    )}
+                    <li className="flex items-center gap-2 text-gray-400 text-sm">
+                      <span className="text-[#59ff00]">✓</span> MOQ: {product.moq || 1} unit(s)
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-400 text-sm">
+                      <span className="text-[#59ff00]">✓</span> Stock: {selectedVariant?.stock ?? product.stock} units
+                    </li>
+                    {product.featured && (
+                      <li className="flex items-center gap-2 text-gray-400 text-sm">
+                        <span className="text-[#59ff00]">✓</span> ⭐ Featured Product
+                      </li>
+                    )}
+                    <li className="flex items-center gap-2 text-gray-400 text-sm">
+                      <span className="text-[#59ff00]">✓</span> Pan India Delivery
+                    </li>
+                  </ul>
                 </div>
-              </TabsContent>
-            )}
+              </div>
+            </TabsContent>
 
             {/* Specifications */}
             <TabsContent value="specifications" className="mt-6">
@@ -461,14 +512,14 @@ export default function ProductDetailPage() {
                 <table className="w-full text-sm">
                   <tbody>
                     {[
-                      { label: 'Category', value: `${categoryEmoji} ${product.category.name}` },
-                      { label: 'Steel Grade', value: product.steelGrade || 'N/A' },
-                      { label: 'Capacity', value: product.capacity || 'N/A' },
-                      { label: 'Dimensions', value: selectedVariant?.dimensions || product.dimensions || 'N/A' },
-                      { label: 'Weight', value: selectedVariant?.weight || 'N/A' },
-                      { label: 'Minimum Order', value: product.moq ? `${product.moq} unit(s)` : '1 unit' },
-                      { label: 'Lead Time', value: product.leadTime || 'N/A' },
-                      { label: 'Stock Available', value: `${selectedVariant?.stock ?? product.stock} units` },
+                      { label: '📂 Category', value: `${categoryEmoji} ${product.category.name}` },
+                      { label: '🔩 Steel Grade', value: product.steelGrade || 'N/A' },
+                      { label: '📦 Capacity', value: product.capacity || 'N/A' },
+                      { label: '📐 Dimensions', value: selectedVariant?.dimensions || product.dimensions || 'N/A' },
+                      { label: '⚖️ Weight', value: selectedVariant?.weight || 'N/A' },
+                      { label: '🛒 Minimum Order', value: product.moq ? `${product.moq} unit(s)` : '1 unit' },
+                      { label: '🚚 Lead Time', value: product.leadTime || 'N/A' },
+                      { label: '📊 Stock Available', value: `${selectedVariant?.stock ?? product.stock} units` },
                     ].map((row, i) => (
                       <tr key={row.label} className={i % 2 === 0 ? 'bg-[#1a1a1a]/50' : ''}>
                         <td className="px-5 py-3 text-gray-500 w-1/3">{row.label}</td>

@@ -397,7 +397,7 @@ export default function HomePage() {
                     </Badge>
                     {product.featured && (
                       <Badge className="absolute top-3 right-3 bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30 text-xs">
-                        Featured
+                        ⭐ Featured
                       </Badge>
                     )}
                   </div>
@@ -405,11 +405,14 @@ export default function HomePage() {
                   {/* Content */}
                   <div className="p-4">
                     <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2 group-hover:text-[#59ff00] transition-colors">
-                      {product.name}
+                      {CATEGORY_EMOJIS[product.category.slug] || '🔧'} {product.name}
                     </h3>
+                    {product.shortDescription && (
+                      <p className="text-gray-500 text-xs mb-2 line-clamp-2">{product.shortDescription}</p>
+                    )}
                     <div className="flex items-center gap-2 mb-3 text-xs text-gray-500">
-                      {product.steelGrade && <span className="bg-[#1a1a1a] px-2 py-0.5 rounded">{product.steelGrade}</span>}
-                      {product.capacity && <span className="bg-[#1a1a1a] px-2 py-0.5 rounded">{product.capacity}</span>}
+                      {product.steelGrade && <span className="bg-[#1a1a1a] px-2 py-0.5 rounded">🔩 {product.steelGrade}</span>}
+                      {product.capacity && <span className="bg-[#1a1a1a] px-2 py-0.5 rounded">📦 {product.capacity}</span>}
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="font-[family-name:var(--font-poppins)] text-[#59ff00] font-bold text-lg">

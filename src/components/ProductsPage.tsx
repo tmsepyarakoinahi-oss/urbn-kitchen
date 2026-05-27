@@ -402,11 +402,11 @@ export default function ProductsPage() {
                       <div className="absolute top-3 right-3">
                         {product.stock > 0 ? (
                           <Badge className="bg-[#59ff00]/20 text-[#59ff00] border-[#59ff00]/30 text-xs">
-                            In Stock
+                            ✅ In Stock
                           </Badge>
                         ) : (
                           <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
-                            Out of Stock
+                            ❌ Out of Stock
                           </Badge>
                         )}
                       </div>
@@ -418,15 +418,19 @@ export default function ProductsPage() {
                         onClick={() => setProductDetail(product.id)}
                         className="text-white font-semibold text-sm mb-1.5 line-clamp-2 cursor-pointer group-hover:text-[#59ff00] transition-colors"
                       >
-                        {product.name}
+                        {CATEGORY_EMOJIS[product.category.slug] || '🔧'} {product.name}
                       </h3>
+                      
+                      {product.shortDescription && (
+                        <p className="text-gray-500 text-xs mb-2 line-clamp-2">{product.shortDescription}</p>
+                      )}
                       
                       <div className="flex items-center flex-wrap gap-1.5 mb-3">
                         {product.steelGrade && (
-                          <span className="bg-[#1a1a1a] text-gray-400 px-2 py-0.5 rounded text-xs">{product.steelGrade}</span>
+                          <span className="bg-[#1a1a1a] text-gray-400 px-2 py-0.5 rounded text-xs">🔩 {product.steelGrade}</span>
                         )}
                         {product.capacity && (
-                          <span className="bg-[#1a1a1a] text-gray-400 px-2 py-0.5 rounded text-xs">{product.capacity}</span>
+                          <span className="bg-[#1a1a1a] text-gray-400 px-2 py-0.5 rounded text-xs">📦 {product.capacity}</span>
                         )}
                       </div>
 
@@ -570,24 +574,24 @@ export default function ProductsPage() {
                   <div className="flex flex-col gap-2 text-sm mb-4">
                     {quickViewProduct.steelGrade && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Steel Grade</span>
+                        <span className="text-gray-500">🔩 Steel Grade</span>
                         <span className="text-white">{quickViewProduct.steelGrade}</span>
                       </div>
                     )}
                     {quickViewProduct.capacity && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Capacity</span>
+                        <span className="text-gray-500">📦 Capacity</span>
                         <span className="text-white">{quickViewProduct.capacity}</span>
                       </div>
                     )}
                     {quickViewProduct.dimensions && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Dimensions</span>
+                        <span className="text-gray-500">📐 Dimensions</span>
                         <span className="text-white">{quickViewProduct.dimensions}</span>
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Availability</span>
+                      <span className="text-gray-500">📊 Availability</span>
                       <span className={(quickViewVariant?.stock ?? quickViewProduct.stock) > 0 ? 'text-[#59ff00]' : 'text-red-400'}>
                         {(quickViewVariant?.stock ?? quickViewProduct.stock) > 0
                           ? `${quickViewVariant?.stock ?? quickViewProduct.stock} in stock`
@@ -596,7 +600,7 @@ export default function ProductsPage() {
                     </div>
                     {quickViewProduct.leadTime && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Lead Time</span>
+                        <span className="text-gray-500">🚚 Lead Time</span>
                         <span className="text-white">{quickViewProduct.leadTime}</span>
                       </div>
                     )}
@@ -616,7 +620,7 @@ export default function ProductsPage() {
                       variant="outline"
                       className="border-[#59ff00] text-[#59ff00] hover:bg-[#59ff00]/10"
                     >
-                      Full Details
+                      📋 Full Details
                     </Button>
                   </div>
                 </div>
