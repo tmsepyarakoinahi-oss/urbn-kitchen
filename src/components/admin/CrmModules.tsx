@@ -44,7 +44,7 @@ function useCrudModule(apiPath: string) {
     try {
       const res = await fetch(`${apiPath}${params}`)
       const json = await res.json()
-      if (json.status) setItems(json.data?.companies || json.data?.pipelines || json.data?.deals || json.data?.templates || json.data?.sequences || json.data?.sources || json.data?.integrations || json.data?.conversations || json.data?.forms || json.data?.imports || json.data || [])
+      if (json.status) { const raw = json.data?.companies || json.data?.pipelines || json.data?.deals || json.data?.templates || json.data?.sequences || json.data?.sources || json.data?.integrations || json.data?.conversations || json.data?.forms || json.data?.imports || json.data || []; setItems(Array.isArray(raw) ? raw : []) }
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }, [apiPath])
 
@@ -599,7 +599,7 @@ function CrmSalesModule({ title, description, icon: Icon, type }: { title: strin
   const [items, setItems] = useState<any[]>([])
   useEffect(() => {
     const apiMap: Record<string, string> = { sales: '/api/quotations', quotes: '/api/quotations', invoices: '/api/quotations', billing: '/api/quotations' }
-    fetch(`${apiMap[type] || '/api/quotations'}?limit=50`).then(r => r.json()).then(j => { if (j.status) setItems(j.data.quotations || j.data || []) }).catch(() => {})
+    fetch(`${apiMap[type] || '/api/quotations'}?limit=50`).then(r => r.json()).then(j => { if (j.status) { const raw = j.data?.quotations || j.data || []; setItems(Array.isArray(raw) ? raw : []) } }).catch(() => {})
   }, [type])
   const totalValue = items.reduce((a: number, q: any) => a + (q.amount || 0), 0)
   return (

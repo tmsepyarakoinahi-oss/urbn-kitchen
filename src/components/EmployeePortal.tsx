@@ -153,7 +153,8 @@ export default function EmployeePortal() {
       const res = await fetch(`/api/salary-slips?employeeId=${empId}&limit=12`)
       const data = await res.json()
       if (data.status) {
-        setSalarySlips(data.data?.slips || data.data || [])
+        const raw = data.data?.slips || data.data || []
+        setSalarySlips(Array.isArray(raw) ? raw : [])
       }
     } catch (err) {
       console.error('Failed to fetch salary slips:', err)

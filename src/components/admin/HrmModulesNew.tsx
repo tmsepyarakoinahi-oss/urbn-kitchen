@@ -44,7 +44,8 @@ function useCrudModule(apiPath: string) {
       const json = await res.json()
       if (json.status) {
         const data = json.data
-        setItems(data?.departments || data?.designations || data?.holidays || data?.notices || data?.jobOpenings || data?.interviews || data?.reviews || data?.appraisals || data?.programs || data?.assets || data?.shifts || data?.reports || data?.teams || data || [])
+        const raw = data?.departments || data?.designations || data?.holidays || data?.notices || data?.jobOpenings || data?.interviews || data?.reviews || data?.appraisals || data?.programs || data?.assets || data?.shifts || data?.reports || data?.teams || data || []
+        setItems(Array.isArray(raw) ? raw : [])
       }
     } catch (e) { console.error(e) } finally { setLoading(false) }
   }, [apiPath])
@@ -170,7 +171,7 @@ function DesignationsModule() {
 // ─── Payroll Module ──────────────────────────────────────
 function PayrollModule({ employees }: { employees: any[] }) {
   const [salarySlips, setSalarySlips] = useState<any[]>([])
-  useEffect(() => { fetch('/api/salary-slips?limit=50').then(r => r.json()).then(j => { if (j.status) setSalarySlips(j.data.salarySlips || j.data || []) }).catch(() => {}) }, [])
+  useEffect(() => { fetch('/api/salary-slips?limit=50').then(r => r.json()).then(j => { if (j.status) { const raw = j.data?.salarySlips || j.data || []; setSalarySlips(Array.isArray(raw) ? raw : []) } }).catch(() => {}) }, [])
   const totalNet = salarySlips.reduce((a: number, s: any) => a + (s.netPay || 0), 0)
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
@@ -192,7 +193,7 @@ function PayrollModule({ employees }: { employees: any[] }) {
 // ─── Salary Slips Module ─────────────────────────────────
 function SalarySlipsModule() {
   const [items, setItems] = useState<any[]>([])
-  useEffect(() => { fetch('/api/salary-slips?limit=50').then(r => r.json()).then(j => { if (j.status) setItems(j.data.salarySlips || j.data || []) }).catch(() => {}) }, [])
+  useEffect(() => { fetch('/api/salary-slips?limit=50').then(r => r.json()).then(j => { if (j.status) { const raw = j.data?.salarySlips || j.data || []; setItems(Array.isArray(raw) ? raw : []) } }).catch(() => {}) }, [])
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <ModuleHeader title="Salary Slips" description="Generate and distribute salary slips to employees" icon={Wallet} />
