@@ -158,6 +158,9 @@ export default function CheckoutPage() {
   const [showRazorpayModal, setShowRazorpayModal] = useState(false)
   const [razorpayProcessing, setRazorpayProcessing] = useState(false)
 
+  // Terms highlight
+  const [termsHighlight, setTermsHighlight] = useState(false)
+
   // Mobile order summary
   const [summaryOpen, setSummaryOpen] = useState(false)
 
@@ -358,7 +361,16 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = () => {
     if (!termsAccepted) {
-      toast.error('Please accept the Terms of Service')
+      setTermsHighlight(true)
+      toast.error('Please accept the Terms of Service to place your order', {
+        duration: 4000,
+        description: 'Check the box below the payment methods',
+      })
+      // Auto-remove highlight after 3s
+      setTimeout(() => setTermsHighlight(false), 3000)
+      // Scroll to terms checkbox
+      const termsEl = document.getElementById('terms')
+      termsEl?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
     if (paymentMethod === 'razorpay') {
@@ -1006,19 +1018,40 @@ export default function CheckoutPage() {
         </div>
 
         {/* Terms Checkbox */}
-        <div className="flex items-start gap-3 mb-6 p-3 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+        <div
+          className={`flex items-start gap-3 mb-6 p-3 rounded-lg border transition-all duration-300 ${
+            termsHighlight
+              ? 'bg-red-500/10 border-red-500/60 ring-2 ring-red-500/30'
+              : termsAccepted
+                ? 'bg-[#59ff00]/5 border-[#59ff00]/30'
+                : 'bg-[#1a1a1a] border-[#2a2a2a]'
+          }`}
+        >
           <Checkbox
             id="terms"
             checked={termsAccepted}
-            onCheckedChange={(checked) => setTermsAccepted(checked === true)}
-            className="mt-0.5 data-[state=checked]:bg-[#59ff00] data-[state=checked]:border-[#59ff00] data-[state=checked]:text-black"
+            onCheckedChange={(checked) => {
+              setTermsAccepted(checked === true)
+              if (checked) setTermsHighlight(false)
+            }}
+            className={`mt-0.5 data-[state=checked]:bg-[#59ff00] data-[state=checked]:border-[#59ff00] data-[state=checked]:text-black ${
+              termsHighlight ? 'border-red-500 animate-pulse' : ''
+            }`}
           />
-          <Label htmlFor="terms" className="text-gray-400 text-sm cursor-pointer leading-relaxed">
-            I agree to the{' '}
-            <span className="text-[#59ff00] hover:underline cursor-pointer">Terms of Service</span>
-            {' '}and{' '}
-            <span className="text-[#59ff00] hover:underline cursor-pointer">Privacy Policy</span>
-          </Label>
+          <div className="flex-1">
+            <Label htmlFor="terms" className="text-gray-400 text-sm cursor-pointer leading-relaxed">
+              I agree to the{' '}
+              <span className="text-[#59ff00] hover:underline cursor-pointer">Terms of Service</span>
+              {' '}and{' '}
+              <span className="text-[#59ff00] hover:underline cursor-pointer">Privacy Policy</span>
+            </Label>
+            {termsHighlight && (
+              <p className="text-red-400 text-xs mt-1.5 font-medium flex items-center gap-1">
+                <span className="inline-block w-1 h-1 rounded-full bg-red-400" />
+                Please check this box to continue
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Navigation Buttons */}
@@ -1033,7 +1066,7 @@ export default function CheckoutPage() {
           </Button>
           <Button
             onClick={handlePlaceOrder}
-            disabled={orderPlacing || !termsAccepted}
+            disabled={orderPlacing}
             className="bg-[#59ff00] text-black hover:bg-[#59ff00]/90 font-semibold h-12 px-8 neon-glow disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {orderPlacing ? (
@@ -1049,6 +1082,12 @@ export default function CheckoutPage() {
             )}
           </Button>
         </div>
+        {!termsAccepted && (
+          <p className="text-gray-500 text-xs text-center mt-3 flex items-center justify-center gap-1.5">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Please accept the Terms of Service above to place your order
+          </p>
+        )}
       </div>
     </motion.div>
   )
