@@ -1,5 +1,7 @@
 {
   "framework": "nextjs",
+  "buildCommand": "bash scripts/vercel-build.sh",
+  "installCommand": "npm install",
   "regions": ["bom1"],
   "headers": [
     {

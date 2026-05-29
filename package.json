@@ -7,7 +7,7 @@
     "build": "bash scripts/vercel-build.sh",
     "start": "next start -p 3000",
     "lint": "eslint .",
-    "postinstall": "prisma generate",
+    "postinstall": "if echo \"$DATABASE_URL\" | grep -q '^postgres'; then sed -i 's/provider = \"sqlite\"/provider = \"postgresql\"/' prisma/schema.prisma; fi && prisma generate",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
