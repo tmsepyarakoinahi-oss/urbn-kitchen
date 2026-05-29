@@ -12,36 +12,14 @@ else
   echo "📦 Using SQLite (no PostgreSQL URL detected)"
 fi
 
-# Step 2: Generate Prisma Client
+# Step 2: Generate Prisma Client (no database operations during build!)
 echo "🔄 Generating Prisma Client..."
 npx prisma generate
 echo "✅ Prisma Client generated"
 
-# Step 3: Deploy migrations (only if DATABASE_URL is set and uses postgres)
-if echo "$DATABASE_URL" | grep -q '^postgres'; then
-  echo "📊 Deploying database migrations..."
-  npx prisma migrate deploy 2>&1 || {
-    echo "⚠️  Migration deploy failed — trying db push as fallback..."
-    npx prisma db push --accept-data-loss 2>&1 || {
-      echo "⚠️  Database push also failed — continuing anyway (schema may already exist)"
-    }
-  }
-  echo "✅ Database schema ready"
-else
-  echo "⚠️  No PostgreSQL DATABASE_URL set, skipping database migration"
-fi
-
-# Step 4: Seed the database (non-blocking — errors won't fail the build)
-if echo "$DATABASE_URL" | grep -q '^postgres'; then
-  echo "🌱 Seeding database..."
-  npx tsx prisma/seed.ts 2>&1 || {
-    echo "⚠️  Database seeding failed — continuing anyway (data may already exist)"
-  }
-else
-  echo "⚠️  No PostgreSQL DATABASE_URL set, skipping database seed"
-fi
-
-# Step 5: Build the Next.js application
+# Step 3: Build the Next.js application
 echo "🏗️  Building Next.js application..."
 npx next build
 echo "✅ Build complete!"
+echo ""
+echo "⚠️  IMPORTANT: After deployment, visit /api/setup-db to create database tables and seed data!"
