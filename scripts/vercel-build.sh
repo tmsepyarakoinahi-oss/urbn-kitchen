@@ -17,25 +17,28 @@ echo "🔄 Generating Prisma Client..."
 npx prisma generate
 echo "✅ Prisma Client generated"
 
-# Step 3: Push database schema (only if DATABASE_URL is set)
-if [ -n "$DATABASE_URL" ]; then
-  echo "📊 Pushing database schema..."
-  npx prisma db push --accept-data-loss 2>&1 || {
-    echo "⚠️  Database push failed — continuing anyway (schema may already exist)"
+# Step 3: Deploy migrations (only if DATABASE_URL is set and uses postgres)
+if echo "$DATABASE_URL" | grep -q '^postgres'; then
+  echo "📊 Deploying database migrations..."
+  npx prisma migrate deploy 2>&1 || {
+    echo "⚠️  Migration deploy failed — trying db push as fallback..."
+    npx prisma db push --accept-data-loss 2>&1 || {
+      echo "⚠️  Database push also failed — continuing anyway (schema may already exist)"
+    }
   }
   echo "✅ Database schema ready"
 else
-  echo "⚠️  No DATABASE_URL set, skipping database push"
+  echo "⚠️  No PostgreSQL DATABASE_URL set, skipping database migration"
 fi
 
 # Step 4: Seed the database (non-blocking — errors won't fail the build)
-if [ -n "$DATABASE_URL" ]; then
+if echo "$DATABASE_URL" | grep -q '^postgres'; then
   echo "🌱 Seeding database..."
   npx tsx prisma/seed.ts 2>&1 || {
     echo "⚠️  Database seeding failed — continuing anyway (data may already exist)"
   }
 else
-  echo "⚠️  No DATABASE_URL set, skipping database seed"
+  echo "⚠️  No PostgreSQL DATABASE_URL set, skipping database seed"
 fi
 
 # Step 5: Build the Next.js application
