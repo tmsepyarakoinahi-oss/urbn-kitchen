@@ -65,7 +65,7 @@ interface Product {
   moq?: number
   leadTime?: string | null
   featured?: boolean
-  status?: string
+  status: string
   category: { id: string; name: string; slug: string }
   featuredImage?: string | null
   images?: { image: string }[]

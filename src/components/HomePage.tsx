@@ -117,7 +117,7 @@ interface Product {
   capacity?: string | null
   stock: number
   featured?: boolean
-  status?: string
+  status: string
   featuredImage?: string | null
   category: { id: string; name: string; slug: string }
   images?: { image: string }[]
